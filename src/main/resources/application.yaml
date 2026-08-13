@@ -24,6 +24,12 @@ server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
 
+
+url-shortener:
+  base-url: ${SHORT_URL_BASE_URL:http://localhost:8080}
+  code-length: ${SHORT_CODE_LENGTH:8}
+  generation-attempts: ${SHORT_CODE_GENERATION_ATTEMPTS:10}
+
 management:
   endpoints:
     web:
