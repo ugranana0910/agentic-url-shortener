@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:agentic_url_shortener_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+agentic:
+  workspace:
+    root: ${java.io.tmpdir}/agentic-url-shortener-tests
+
+  execution:
+    max-attempts: 2
+    command-timeout-seconds: 10
+
+  model:
+    provider: deterministic

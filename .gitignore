@@ -1,0 +1,43 @@
+# Maven
+target/
+.mvn/timing.properties
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# Runtime
+*.log
+logs/
+agent-workspaces/
+artifacts/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+application-local.yml
+application-secrets.yml
+
+# Test and coverage output
+test-results/
+coverage/
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
