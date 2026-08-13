@@ -9,7 +9,8 @@ import java.time.Clock;
 @Configuration
 @EnableConfigurationProperties({
         AgenticProperties.class,
-        UrlShortenerProperties.class
+        UrlShortenerProperties.class,
+        IdempotencyProperties.class
 })
 public class AgenticConfiguration {
 

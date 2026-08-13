@@ -60,6 +60,19 @@ public class ShortUrlService {
     }
 
     @Transactional(readOnly = true)
+    public ShortUrlResponse getById(UUID id) {
+        ShortUrl shortUrl = repository.findById(id)
+                .orElseThrow(
+                        () -> new IllegalStateException(
+                                "Idempotency resource no longer exists: "
+                                        + id
+                        )
+                );
+
+        return toResponse(shortUrl);
+    }
+
+    @Transactional(readOnly = true)
     public RedirectTarget resolve(String shortCode) {
         ShortUrl shortUrl = findByShortCode(shortCode);
         Instant now = clock.instant();

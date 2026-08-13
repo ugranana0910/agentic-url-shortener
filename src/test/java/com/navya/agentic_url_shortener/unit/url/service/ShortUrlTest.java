@@ -1,4 +1,4 @@
-package com.navya.agentic_url_shortener.unit.url.domain;
+package com.navya.agentic_url_shortener.unit.url.service;
 
 import com.navya.agentic_url_shortener.url.domain.ShortUrl;
 import org.junit.jupiter.api.Test;

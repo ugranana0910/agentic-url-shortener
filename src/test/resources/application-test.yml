@@ -24,3 +24,8 @@ agentic:
 
   model:
     provider: deterministic
+
+idempotency:
+  retention: PT24H
+  in-progress-timeout: PT2M
+  max-key-length: 128

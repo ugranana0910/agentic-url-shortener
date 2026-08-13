@@ -4,6 +4,9 @@ import com.navya.agentic_url_shortener.url.exception.InvalidUrlException;
 import com.navya.agentic_url_shortener.url.exception.ShortCodeGenerationException;
 import com.navya.agentic_url_shortener.url.exception.ShortUrlNotFoundException;
 import com.navya.agentic_url_shortener.url.exception.ShortUrlUnavailableException;
+import com.navya.agentic_url_shortener.idempotency.exception.IdempotencyConflictException;
+import com.navya.agentic_url_shortener.idempotency.exception.IdempotencyInProgressException;
+import com.navya.agentic_url_shortener.idempotency.exception.InvalidIdempotencyKeyException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -145,6 +148,52 @@ public class ApiExceptionHandler {
                 "timestamp",
                 Instant.now()
         );
+
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidIdempotencyKeyException.class)
+    public ProblemDetail handleInvalidIdempotencyKey(
+            InvalidIdempotencyKeyException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.BAD_REQUEST,
+                "Invalid idempotency key",
+                exception.getMessage(),
+                "invalid-idempotency-key",
+                request
+        );
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ProblemDetail handleIdempotencyConflict(
+            IdempotencyConflictException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.CONFLICT,
+                "Idempotency conflict",
+                exception.getMessage(),
+                "idempotency-conflict",
+                request
+        );
+    }
+
+    @ExceptionHandler(IdempotencyInProgressException.class)
+    public ProblemDetail handleIdempotencyInProgress(
+            IdempotencyInProgressException exception,
+            HttpServletRequest request
+    ) {
+        ProblemDetail problem = createProblem(
+                HttpStatus.CONFLICT,
+                "Request already in progress",
+                exception.getMessage(),
+                "idempotency-in-progress",
+                request
+        );
+
+        problem.setProperty("retryable", true);
 
         return problem;
     }
