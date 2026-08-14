@@ -31,6 +31,17 @@ planning, repository-reasoning, implementation, testing, and validation agents.
 
 ## Implemented capabilities
 
+- Deterministic requirement normalization
+- Acceptance-criteria and assumption generation
+- Ambiguity detection and clarification pause
+- Requirement risk classification
+- Scenario-aware dynamic workflow planning
+- Different greenfield and brownfield dependency graphs
+- Documentation-only workflow optimization
+- High-risk security-review planning
+- Automatic engineering-workflow execution API
+- Workflow inspection API
+
 ### URL shortener
 
 - HTTP and HTTPS URL validation
@@ -714,16 +725,96 @@ Human-approval gates use a context key containing the workflow revision. A later
 replan increments the revision, making prior approval evidence invalid for the
 new workflow state.
 
+### Requirement understanding and dynamic planning
+
+The orchestration system performs deterministic and reproducible requirement
+analysis before executing engineering stages.
+
+Implemented analysis includes:
+
+- Requirement normalization
+- Acceptance-criteria generation
+- Ambiguity detection
+- Assumption recording
+- Risk classification
+- Documentation-only change detection
+- Greenfield and brownfield classification
+
+Plans are generated according to the requirement rather than using one fixed
+workflow:
+
+- Greenfield work begins with requirement and architecture analysis.
+- Brownfield work adds repository-impact analysis.
+- Documentation-only work avoids implementation tasks.
+- High-risk work adds a security-review task.
+- Ambiguous work pauses at `AWAITING_CLARIFICATION`.
+
+Current stage handlers generate structured deterministic outputs. Controlled
+repository inspection and real engineering artifacts are added in subsequent
+commits.
+
+### Create an engineering workflow
+
+```http
+POST /api/v1/engineering-workflows
+Content-Type: application/json
+```
+
+Brownfield example:
+
+```json
+{
+  "scenarioType": "BROWNFIELD",
+  "requirement": "Add redirect analytics to the existing URL API",
+  "repositoryPath": "./repository"
+}
+```
+
+Greenfield example:
+
+```json
+{
+  "scenarioType": "GREENFIELD",
+  "requirement": "Create a URL shortening API with expiration",
+  "repositoryPath": null
+}
+```
+
+Ambiguous example:
+
+```json
+{
+  "scenarioType": "AMBIGUOUS",
+  "requirement": "Make shortened links safer and better",
+  "repositoryPath": null
+}
+```
+
+The ambiguous workflow stops before architecture or implementation and returns:
+
+```text
+AWAITING_CLARIFICATION
+```
+
+### Retrieve an engineering workflow
+
+```http
+GET /api/v1/engineering-workflows/{workflowId}
+```
+
+Workflow retrieval is currently available for the lifetime of the running
+application because workflow persistence is still in memory.
+
 ## Current limitations
 
 - Workflow state is currently held in memory.
-- Real requirement-analysis and engineering agents are not connected yet.
-- Repository inspection and controlled engineering tools are introduced later.
+- Requirement analysis is deterministic rather than model-backed.
+- Non-requirement handlers currently produce structured stage outputs rather than repository patches.
+- Repository inspection tools are introduced in the next commit.
 - Engineering artifacts and audit events are not persisted yet.
-- Workflow replanning, rollback, and safe-stop APIs are introduced later.
+- Clarification submission and workflow replanning are introduced later.
 - Redirect analytics are not implemented yet.
 - Authentication and authorization are not implemented yet.
-- The Spring Boot application image is not yet part of Docker Compose.
 - GitHub Actions CI is added in the final infrastructure commit.
 
 ## Planned next capabilities

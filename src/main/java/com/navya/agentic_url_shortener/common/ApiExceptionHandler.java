@@ -7,6 +7,8 @@ import com.navya.agentic_url_shortener.url.exception.ShortUrlUnavailableExceptio
 import com.navya.agentic_url_shortener.idempotency.exception.IdempotencyConflictException;
 import com.navya.agentic_url_shortener.idempotency.exception.IdempotencyInProgressException;
 import com.navya.agentic_url_shortener.idempotency.exception.InvalidIdempotencyKeyException;
+import com.navya.agentic_url_shortener.orchestration.exception.InvalidWorkflowGraphException;
+import com.navya.agentic_url_shortener.orchestration.exception.WorkflowNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -119,6 +121,34 @@ public class ApiExceptionHandler {
         problem.setProperty("errors", errors);
 
         return problem;
+    }
+
+    @ExceptionHandler(WorkflowNotFoundException.class)
+    public ProblemDetail handleWorkflowNotFound(
+            WorkflowNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.NOT_FOUND,
+                "Engineering workflow not found",
+                exception.getMessage(),
+                "workflow-not-found",
+                request
+        );
+    }
+
+    @ExceptionHandler(InvalidWorkflowGraphException.class)
+    public ProblemDetail handleInvalidWorkflowGraph(
+            InvalidWorkflowGraphException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Invalid workflow graph",
+                exception.getMessage(),
+                "invalid-workflow-graph",
+                request
+        );
     }
 
     private ProblemDetail createProblem(
