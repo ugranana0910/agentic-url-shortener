@@ -62,6 +62,10 @@ public class AgenticProperties {
 
         @Min(1)
         private int commandTimeoutSeconds = 120;
+
+        @Min(1_000)
+        @Max(1_000_000)
+        private int maxOutputCharacters = 100_000;
     }
 
     @Data

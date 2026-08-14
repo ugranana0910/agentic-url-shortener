@@ -25,7 +25,8 @@ agentic:
 
   execution:
     max-attempts: 2
-    command-timeout-seconds: 10
+    command-timeout-seconds: 30
+    max-output-characters: 100000
 
   model:
     provider: deterministic

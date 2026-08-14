@@ -10,6 +10,7 @@ import com.navya.agentic_url_shortener.idempotency.exception.IdempotencyInProgre
 import com.navya.agentic_url_shortener.idempotency.exception.InvalidIdempotencyKeyException;
 import com.navya.agentic_url_shortener.orchestration.exception.InvalidWorkflowGraphException;
 import com.navya.agentic_url_shortener.orchestration.exception.WorkflowNotFoundException;
+import com.navya.agentic_url_shortener.tool.build.BuildExecutionException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -162,6 +163,20 @@ public class ApiExceptionHandler {
                 "Repository access rejected",
                 exception.getMessage(),
                 "repository-access-rejected",
+                request
+        );
+    }
+
+    @ExceptionHandler(BuildExecutionException.class)
+    public ProblemDetail handleBuildExecution(
+            BuildExecutionException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Build validation failed",
+                exception.getMessage(),
+                "build-validation-failed",
                 request
         );
     }

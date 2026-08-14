@@ -32,6 +32,19 @@ metrics, scenarios, Docker application packaging, and CI are added in subsequent
 commits.
 
 ## Implemented capabilities
+### Executable validation
+
+- Requirement-specific implementation-plan artifacts
+- Requirement-specific test-plan artifacts
+- Controlled Maven Wrapper execution
+- Fixed allowlisted Maven arguments
+- Process timeout enforcement
+- Output-size limits
+- Exit-code validation
+- Captured Maven logs
+- Attempt-specific validation evidence
+- Validation decision reports
+- Failed validation blocks downstream release readiness
 
 ### URL shortener
 
@@ -507,14 +520,18 @@ Artifacts are stored under:
 
 ```text
 agent-workspaces/{workflowId}/revision-{revision}/artifacts/
-```
+````markdown
+### Generated artifact bundle
 
-Current files:
-
+A successful brownfield workflow currently produces:
 ```text
-repository-analysis.md
-architecture.md
-```
+agent-workspaces/{workflowId}/revision-{revision}/artifacts/
+|-- repository-analysis.md
+|-- architecture.md
+|-- implementation-plan.md
+|-- test-plan.md
+|-- maven-test-attempt-1.log
+`-- validation-report-attempt-1.md
 
 ### Read the repository-analysis artifact
 
@@ -761,9 +778,9 @@ Run:
 - The artifact catalog is in memory, although artifact files remain on disk.
 - Requirement analysis is deterministic rather than model-backed.
 - Repository and architecture stages generate real artifacts.
-- Implementation and test stages still generate structured placeholders.
-- Code-patch generation is not implemented yet.
-- Build and test commands are not yet executed by workflow tools.
+- Implementation and test-planning stages generate real reviewable planning artifacts.
+- Brownfield validation executes the repository Maven test suite.
+- Source-code patch generation and isolated patch application are not implemented yet.
 - Clarification submission and dynamic replanning are not implemented yet.
 - Governance and authenticated approval are not implemented yet.
 - Audit-grade event persistence and reliability metrics are not implemented yet.

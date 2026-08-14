@@ -11,30 +11,6 @@ public class WorkflowHandlerConfiguration {
 
 
     @Bean
-    public WorkflowTaskHandler implementationHandler() {
-        return new DeterministicStageHandler(
-                TaskType.IMPLEMENTATION,
-                "implementationOutput"
-        );
-    }
-
-    @Bean
-    public WorkflowTaskHandler testPlanningHandler() {
-        return new DeterministicStageHandler(
-                TaskType.TEST_PLANNING,
-                "testPlanOutput"
-        );
-    }
-
-    @Bean
-    public WorkflowTaskHandler validationHandler() {
-        return new DeterministicStageHandler(
-                TaskType.VALIDATION,
-                "validationOutput"
-        );
-    }
-
-    @Bean
     public WorkflowTaskHandler securityReviewHandler() {
         return new DeterministicStageHandler(
                 TaskType.SECURITY_REVIEW,
