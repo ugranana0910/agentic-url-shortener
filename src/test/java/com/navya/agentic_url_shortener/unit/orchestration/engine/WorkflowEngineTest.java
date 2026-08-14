@@ -1,5 +1,7 @@
 package com.navya.agentic_url_shortener.unit.orchestration.engine;
 
+import com.navya.agentic_url_shortener.audit.InMemoryAuditJournal;
+import com.navya.agentic_url_shortener.audit.WorkflowMetrics;
 import com.navya.agentic_url_shortener.orchestration.domain.EngineeringWorkflow;
 import com.navya.agentic_url_shortener.orchestration.domain.GateDefinition;
 import com.navya.agentic_url_shortener.orchestration.domain.ScenarioType;
@@ -13,6 +15,7 @@ import com.navya.agentic_url_shortener.orchestration.engine.WorkflowTaskHandler;
 import com.navya.agentic_url_shortener.orchestration.engine.WorkflowTaskHandlerRegistry;
 import com.navya.agentic_url_shortener.orchestration.gate.WorkflowGateEvaluator;
 import com.navya.agentic_url_shortener.orchestration.repository.InMemoryWorkflowRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -29,6 +32,18 @@ class WorkflowEngineTest {
 
     private static final Instant NOW =
             Instant.parse("2026-08-13T12:00:00Z");
+
+    private final Clock clock =
+            Clock.fixed(NOW, ZoneOffset.UTC);
+
+    private final SimpleMeterRegistry meterRegistry =
+            new SimpleMeterRegistry();
+
+    private final InMemoryAuditJournal auditJournal =
+            new InMemoryAuditJournal(clock);
+
+    private final WorkflowMetrics workflowMetrics =
+            new WorkflowMetrics(meterRegistry);
 
     @Test
     void executesParallelBranchesBeforeJoin() {
@@ -51,6 +66,7 @@ class WorkflowEngineTest {
 
         WorkflowTaskHandler validationHandler =
                 new WorkflowTaskHandler() {
+
                     @Override
                     public TaskType supports() {
                         return TaskType.VALIDATION;
@@ -62,15 +78,13 @@ class WorkflowEngineTest {
                             WorkflowTask task
                     ) {
                         assertThat(
-                                workflow.getContext().contains(
-                                        "implementation"
-                                )
+                                workflow.getContext()
+                                        .contains("implementation")
                         ).isTrue();
 
                         assertThat(
-                                workflow.getContext().contains(
-                                        "test-planning"
-                                )
+                                workflow.getContext()
+                                        .contains("test-planning")
                         ).isTrue();
 
                         events.add("validation");
@@ -82,18 +96,12 @@ class WorkflowEngineTest {
                     }
                 };
 
-        WorkflowEngine engine = new WorkflowEngine(
-                new WorkflowGraphValidator(),
-                new WorkflowGateEvaluator(),
-                new WorkflowTaskHandlerRegistry(
-                        List.of(
-                                implementationHandler,
-                                testPlanningHandler,
-                                validationHandler
-                        )
-                ),
-                new InMemoryWorkflowRepository(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+        WorkflowEngine engine = createEngine(
+                List.of(
+                        implementationHandler,
+                        testPlanningHandler,
+                        validationHandler
+                )
         );
 
         EngineeringWorkflow workflow =
@@ -136,7 +144,7 @@ class WorkflowEngineTest {
                 .isEqualTo(WorkflowStatus.COMPLETED);
 
         assertThat(events)
-                .contains(
+                .containsExactlyInAnyOrder(
                         "implementation",
                         "test-planning",
                         "validation"
@@ -150,8 +158,9 @@ class WorkflowEngineTest {
     void retriesFailedTaskWithinBound() {
         int[] attempts = {0};
 
-        WorkflowTaskHandler handler =
+        WorkflowTaskHandler implementationHandler =
                 new WorkflowTaskHandler() {
+
                     @Override
                     public TaskType supports() {
                         return TaskType.IMPLEMENTATION;
@@ -177,14 +186,8 @@ class WorkflowEngineTest {
                     }
                 };
 
-        WorkflowEngine engine = new WorkflowEngine(
-                new WorkflowGraphValidator(),
-                new WorkflowGateEvaluator(),
-                new WorkflowTaskHandlerRegistry(
-                        List.of(handler)
-                ),
-                new InMemoryWorkflowRepository(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+        WorkflowEngine engine = createEngine(
+                List.of(implementationHandler)
         );
 
         EngineeringWorkflow workflow =
@@ -196,21 +199,38 @@ class WorkflowEngineTest {
                         NOW
                 );
 
-        WorkflowTask task = task(
+        WorkflowTask implementationTask = task(
                 "Implementation",
                 TaskType.IMPLEMENTATION,
                 Set.of()
         );
 
-        workflow.addTask(task);
+        workflow.addTask(implementationTask);
 
         engine.execute(workflow);
 
         assertThat(workflow.getStatus())
                 .isEqualTo(WorkflowStatus.COMPLETED);
 
-        assertThat(task.getAttempt()).isEqualTo(2);
-        assertThat(attempts[0]).isEqualTo(2);
+        assertThat(implementationTask.getAttempt())
+                .isEqualTo(2);
+
+        assertThat(attempts[0])
+                .isEqualTo(2);
+    }
+
+    private WorkflowEngine createEngine(
+            List<WorkflowTaskHandler> handlers
+    ) {
+        return new WorkflowEngine(
+                new WorkflowGraphValidator(),
+                new WorkflowGateEvaluator(),
+                new WorkflowTaskHandlerRegistry(handlers),
+                new InMemoryWorkflowRepository(),
+                clock,
+                auditJournal,
+                workflowMetrics
+        );
     }
 
     private WorkflowTaskHandler handler(
@@ -219,6 +239,7 @@ class WorkflowEngineTest {
             ConcurrentLinkedQueue<String> events
     ) {
         return new WorkflowTaskHandler() {
+
             @Override
             public TaskType supports() {
                 return type;

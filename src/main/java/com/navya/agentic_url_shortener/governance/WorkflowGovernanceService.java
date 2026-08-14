@@ -3,7 +3,9 @@ package com.navya.agentic_url_shortener.governance;
 import com.navya.agentic_url_shortener.artifact.ArtifactReference;
 import com.navya.agentic_url_shortener.artifact.ArtifactStore;
 import com.navya.agentic_url_shortener.orchestration.domain.EngineeringWorkflow;
-import com.navya.agentic_url_shortener.orchestration.domain.WorkflowStatus;
+import com.navya.agentic_url_shortener.audit.AuditEventType;
+import com.navya.agentic_url_shortener.audit.AuditJournal;
+import com.navya.agentic_url_shortener.audit.WorkflowMetrics;
 import com.navya.agentic_url_shortener.orchestration.dto.WorkflowResponse;
 import com.navya.agentic_url_shortener.orchestration.engine.WorkflowEngine;
 import com.navya.agentic_url_shortener.orchestration.exception.WorkflowNotFoundException;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,6 +29,8 @@ public class WorkflowGovernanceService {
     private final ArtifactStore artifactStore;
     private final ReleasePolicyEngine policyEngine;
     private final Clock clock;
+    private final AuditJournal auditJournal;
+    private final WorkflowMetrics workflowMetrics;
 
     public WorkflowResponse approve(
             UUID workflowId,
@@ -86,6 +91,34 @@ public class WorkflowGovernanceService {
                     )
             );
 
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.POLICY_EVALUATED,
+                    approver,
+                    "Release policies evaluated successfully",
+                    Map.of(
+                            "artifactCount",
+                            artifacts.size()
+                    )
+            );
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.APPROVAL_GRANTED,
+                    approver,
+                    reason,
+                    Map.of(
+                            "artifactHashes",
+                            hashes
+                    )
+            );
+
+            workflowMetrics.approvalGranted();
+
             workflow.resume();
         }
 
@@ -111,6 +144,17 @@ public class WorkflowGovernanceService {
                     reason,
                     stoppedBy
             );
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.SAFE_STOPPED,
+                    stoppedBy,
+                    reason,
+                    Map.of()
+            );
+
+            workflowMetrics.safeStopped();
 
             workflowRepository.save(workflow);
         }

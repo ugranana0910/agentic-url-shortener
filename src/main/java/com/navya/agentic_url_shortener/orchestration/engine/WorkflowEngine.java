@@ -1,5 +1,8 @@
 package com.navya.agentic_url_shortener.orchestration.engine;
 
+import com.navya.agentic_url_shortener.audit.AuditEventType;
+import com.navya.agentic_url_shortener.audit.AuditJournal;
+import com.navya.agentic_url_shortener.audit.WorkflowMetrics;
 import com.navya.agentic_url_shortener.orchestration.domain.EngineeringWorkflow;
 import com.navya.agentic_url_shortener.orchestration.domain.TaskStatus;
 import com.navya.agentic_url_shortener.orchestration.domain.WorkflowStatus;
@@ -26,6 +29,8 @@ public class WorkflowEngine {
     private final WorkflowTaskHandlerRegistry handlerRegistry;
     private final WorkflowRepository workflowRepository;
     private final Clock clock;
+    private final AuditJournal auditJournal;
+    private final WorkflowMetrics workflowMetrics;
 
     private final Executor executor =
             Executors.newVirtualThreadPerTaskExecutor();
@@ -36,7 +41,45 @@ public class WorkflowEngine {
         graphValidator.validate(workflow);
 
         workflowRepository.save(workflow);
+
+        auditJournal.record(
+                workflow.getId(),
+                workflow.getRevision(),
+                null,
+                AuditEventType.WORKFLOW_CREATED,
+                "SYSTEM",
+                "Engineering workflow created",
+                Map.of(
+                        "scenario",
+                        workflow.getScenarioType().name()
+                )
+        );
+
+        auditJournal.record(
+                workflow.getId(),
+                workflow.getRevision(),
+                null,
+                AuditEventType.PLAN_GENERATED,
+                "SYSTEM",
+                "Dependency graph generated",
+                Map.of(
+                        "taskCount",
+                        workflow.getTasks().size()
+                )
+        );
+
         workflow.start(clock.instant());
+        workflowMetrics.workflowStarted(workflow);
+
+        auditJournal.record(
+                workflow.getId(),
+                workflow.getRevision(),
+                null,
+                AuditEventType.WORKFLOW_STARTED,
+                "SYSTEM",
+                "Workflow execution started",
+                Map.of()
+        );
 
         return continueExecution(workflow);
     }
@@ -81,9 +124,72 @@ public class WorkflowEngine {
         }
 
         workflowRepository.save(workflow);
-
+        recordWorkflowOutcome(workflow);
         return workflow;
     }
+
+    private void recordWorkflowOutcome(
+            EngineeringWorkflow workflow
+    ) {
+        if (workflow.getStatus()
+                == WorkflowStatus.COMPLETED) {
+            workflowMetrics.workflowCompleted(workflow);
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.WORKFLOW_COMPLETED,
+                    "SYSTEM",
+                    "Workflow completed",
+                    Map.of()
+            );
+
+            return;
+        }
+
+        if (workflow.getStatus()
+                == WorkflowStatus.FAILED) {
+            workflowMetrics.workflowFailed(workflow);
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.WORKFLOW_FAILED,
+                    "SYSTEM",
+                    workflow.getFailureMessage() == null
+                            ? "Workflow failed"
+                            : workflow.getFailureMessage(),
+                    Map.of()
+            );
+
+            return;
+        }
+
+        if (workflow.getStatus()
+                == WorkflowStatus.AWAITING_CLARIFICATION) {
+            workflowMetrics.clarificationRequired(
+                    workflow
+            );
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    null,
+                    AuditEventType.CLARIFICATION_REQUIRED,
+                    "SYSTEM",
+                    "Workflow requires human clarification",
+                    Map.of(
+                            "ambiguities",
+                            workflow.getContext()
+                                    .get("ambiguities")
+                                    .orElse(java.util.List.of())
+                    )
+            );
+        }
+    }
+
     private List<WorkflowTask> findRunnableTasks(
             EngineeringWorkflow workflow
     ) {
@@ -135,6 +241,21 @@ public class WorkflowEngine {
     ) {
         task.start(clock.instant());
 
+        auditJournal.record(
+                workflow.getId(),
+                workflow.getRevision(),
+                task.getId(),
+                AuditEventType.TASK_STARTED,
+                "SYSTEM",
+                "Task execution started",
+                Map.of(
+                        "taskType",
+                        task.getType().name(),
+                        "attempt",
+                        task.getAttempt()
+                )
+        );
+
         try {
             WorkflowTaskHandler handler =
                     handlerRegistry.require(
@@ -159,13 +280,61 @@ public class WorkflowEngine {
             }
 
             task.succeed(clock.instant());
+            workflowMetrics.taskSucceeded(task);
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    task.getId(),
+                    AuditEventType.TASK_SUCCEEDED,
+                    "SYSTEM",
+                    "Task execution succeeded",
+                    Map.of(
+                            "taskType",
+                            task.getType().name(),
+                            "attempt",
+                            task.getAttempt()
+                    )
+            );
         } catch (RuntimeException exception) {
             task.fail(
                     safeMessage(exception),
                     clock.instant()
             );
 
+            workflowMetrics.taskFailed(task);
+
+            auditJournal.record(
+                    workflow.getId(),
+                    workflow.getRevision(),
+                    task.getId(),
+                    AuditEventType.TASK_FAILED,
+                    "SYSTEM",
+                    safeMessage(exception),
+                    Map.of(
+                            "taskType",
+                            task.getType().name(),
+                            "attempt",
+                            task.getAttempt()
+                    )
+            );
+
             if (task.canRetry()) {
+                workflowMetrics.taskRetried(task);
+
+                auditJournal.record(
+                        workflow.getId(),
+                        workflow.getRevision(),
+                        task.getId(),
+                        AuditEventType.TASK_RETRIED,
+                        "SYSTEM",
+                        "Task scheduled for bounded retry",
+                        Map.of(
+                                "nextAttempt",
+                                task.getAttempt() + 1
+                        )
+                );
+
                 task.prepareRetry();
             }
         }

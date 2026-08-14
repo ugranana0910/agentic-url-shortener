@@ -8,12 +8,12 @@ The project combines:
 1. A URL-shortening API with durable request idempotency.
 2. An agentic engineering system that analyzes requirements, generates dynamic
    dependency graphs, inspects brownfield repositories, creates reviewable
-   engineering artifacts, runs validation, and enforces governed release
-   approval.
+   engineering artifacts, executes validation, enforces governed approval, and
+   records auditable engineering outcomes.
 
 ## Current status
 
-Implemented through Commit 8:
+Implemented through Commit 9:
 
 - Core URL-shortening APIs
 - PostgreSQL-backed idempotent URL creation
@@ -29,10 +29,15 @@ Implemented through Commit 8:
 - Controlled Maven test execution
 - Release policies and mandatory approval
 - Safe-stop control
+- Structured workflow audit events
+- Chronological per-workflow audit history
+- Workflow, task, retry, approval, clarification, and safe-stop metrics
+- Workflow execution-duration metrics
+- Spring Boot Actuator metric exposure
 
-The next stages add clarification-driven replanning, audit events, reliability
-metrics, executable scenarios, Docker application packaging, and GitHub Actions
-CI.
+The final stage adds executable demonstration scenarios, Docker application
+packaging, GitHub Actions CI, coverage reporting, and final production
+documentation.
 
 ## Implemented capabilities
 
@@ -157,6 +162,29 @@ CI.
 - Pending-task cancellation
 - Safe-stop actor and reason preservation
 
+### Auditability and observability
+
+- Structured audit events with unique event IDs
+- Workflow and revision association
+- Optional task association
+- Actor and event-detail preservation
+- Chronologically ordered workflow history
+- Workflow-created and workflow-started events
+- Plan-generation events
+- Task-started, succeeded, failed, and retried events
+- Clarification-required events
+- Policy-evaluation events
+- Approval-granted events
+- Safe-stop events
+- Workflow-completed and workflow-failed events
+- Micrometer counters for workflow outcomes
+- Scenario-tagged workflow metrics
+- Task-type and outcome metrics
+- Retry counters
+- Approval and safe-stop counters
+- Workflow-duration timers
+- Spring Boot Actuator metric inspection
+
 ## Architecture
 
 ```text
@@ -201,6 +229,14 @@ CI.
                                           |
                                           v
                                  Release Readiness
+                                          |
+                    +---------------------+---------------------+
+                    |                                           |
+                    v                                           v
+              Audit Journal                              Micrometer Metrics
+                    |                                           |
+                    v                                           v
+          Workflow Audit API                         Spring Boot Actuator
 ```
 
 ## Workflow states
@@ -230,8 +266,6 @@ RUNNING
 
 ### Greenfield
 
-A greenfield workflow generates:
-
 ```text
 Requirement analysis
     -> Architecture
@@ -242,12 +276,10 @@ Requirement analysis
     -> Release readiness
 ```
 
-Greenfield validation is currently conditional because the workflow does not yet
+Greenfield validation is conditional because the workflow does not currently
 materialize a new source repository.
 
 ### Brownfield
-
-A brownfield workflow generates:
 
 ```text
 Requirement analysis
@@ -263,14 +295,13 @@ Requirement analysis
 
 ### Ambiguous
 
-An ambiguous workflow stops after requirement analysis:
-
 ```text
 Requirement analysis
     -> AWAITING_CLARIFICATION
 ```
 
-No architecture or implementation work starts until clarification is available.
+No architecture, implementation, or validation work starts until clarification
+is available.
 
 ## Technology
 
@@ -287,6 +318,8 @@ No architecture or implementation work starts until clarification is available.
 - JUnit
 - AssertJ
 - Mockito
+- Micrometer
+- Spring Boot Actuator
 - Docker Compose
 - Java virtual threads
 
@@ -380,14 +413,14 @@ BUILD SUCCESS
 
 ### Start the application
 
-Always start the application from the project root so relative repository and
+Always run the application from the project root so relative repository and
 artifact paths resolve consistently:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-The application runs at:
+The application starts at:
 
 ```text
 http://localhost:8080
@@ -440,7 +473,7 @@ HTTP/1.1 201 Created
 Idempotency-Replayed: true
 ```
 
-Same key with a different payload:
+The same key with a different payload returns:
 
 ```http
 HTTP/1.1 409 Conflict
@@ -512,7 +545,7 @@ $workflow.tasks |
     Format-Table -AutoSize
 ```
 
-The release-readiness task should remain `PENDING` until approval.
+The release-readiness task remains `PENDING` until approval.
 
 ### Create a greenfield workflow
 
@@ -612,7 +645,7 @@ agent-workspaces/{workflowId}/revision-{revision}/artifacts/
 | `maven-test-attempt-1.log` | Preserves controlled Maven test output |
 | `validation-report-attempt-1.md` | Records command, exit code, timeout state, duration, log hash, and gate decision |
 
-Retries preserve prior evidence:
+Retries preserve earlier evidence:
 
 ```text
 maven-test-attempt-2.log
@@ -638,7 +671,7 @@ $repositoryArtifactPath = Join-Path `
 Get-Content -LiteralPath $repositoryArtifactPath
 ```
 
-### Verify its hash
+### Verify an artifact hash
 
 ```powershell
 (Get-FileHash `
@@ -647,7 +680,7 @@ Get-Content -LiteralPath $repositoryArtifactPath
 ).Hash.ToLower()
 ```
 
-The result should equal the API's `sha256` value.
+The result should equal the API response's `sha256` value.
 
 ## Governance API
 
@@ -751,6 +784,114 @@ Safe stop prevents pending work from starting, cancels pending or blocked tasks,
 and preserves the actor and reason. It does not forcibly interrupt an already
 running external Maven process in this prototype.
 
+## Audit and observability
+
+### Retrieve workflow audit events
+
+```http
+GET /api/v1/engineering-workflows/{workflowId}/audit-events
+```
+
+```powershell
+$auditEvents = Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)/audit-events"
+
+$auditEvents |
+    Select-Object occurredAt, type, taskId, actor, detail |
+    Format-Table -AutoSize
+```
+
+Events are returned in chronological order and are scoped to the requested
+workflow.
+
+Depending on the workflow path, the history can contain:
+
+```text
+WORKFLOW_CREATED
+PLAN_GENERATED
+WORKFLOW_STARTED
+TASK_STARTED
+TASK_SUCCEEDED
+TASK_FAILED
+TASK_RETRIED
+CLARIFICATION_REQUIRED
+POLICY_EVALUATED
+APPROVAL_GRANTED
+SAFE_STOPPED
+WORKFLOW_COMPLETED
+WORKFLOW_FAILED
+```
+
+Each event contains:
+
+- Unique event ID
+- Workflow ID
+- Workflow revision
+- Optional task ID
+- Event type
+- Actor
+- Detail
+- Occurrence timestamp
+
+The API validates that the workflow exists before returning its history. An
+unknown workflow ID returns `404 Not Found`.
+
+### Inspect available metrics
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/metrics"
+```
+
+Workflow lifecycle metrics:
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/metrics/agentic.workflows"
+```
+
+Task metrics:
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/metrics/agentic.tasks"
+```
+
+Retry metrics:
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/metrics/agentic.retries"
+```
+
+Workflow-duration metrics:
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/metrics/agentic.workflow.duration"
+```
+
+Additional metrics include:
+
+```text
+agentic.clarifications
+agentic.approvals
+agentic.safe.stops
+```
+
+Metrics use bounded tags such as workflow scenario, task type, status, decision,
+and outcome. Workflow IDs and other unbounded values are intentionally excluded
+to avoid high-cardinality telemetry.
+
+Audit events provide workflow-specific traceability. Metrics provide aggregated
+operational visibility.
+
 ## Repository safety
 
 Repository access is restricted to:
@@ -812,8 +953,6 @@ Current error categories include:
 
 ## Database inspection
 
-List database tables:
-
 ```powershell
 docker exec `
     agentic-url-shortener-postgres `
@@ -859,7 +998,7 @@ flyway_schema_history
 ### Database-backed idempotency
 
 Idempotency records live in PostgreSQL so duplicate handling survives application
-restarts and can work across multiple instances.
+restarts and can work across multiple application instances.
 
 ### Flyway-owned schemas
 
@@ -869,7 +1008,7 @@ verify mappings without modifying the production schema.
 ### Dynamic workflow planning
 
 Plans depend on scenario, ambiguity, risk, and request type. The system does not
-apply one fixed sequence to every requirement.
+apply one fixed sequence to every engineering requirement.
 
 ### Controlled autonomy
 
@@ -878,8 +1017,8 @@ engineering work stops before release readiness until a human approves it.
 
 ### Controlled repository access
 
-Repository paths are resolved against an approved root. Normalized and real paths
-must remain within that root. Inspected file counts and sizes are bounded.
+Repository paths are resolved against an approved root. Normalized and real
+paths must remain within that root. Inspected file counts and sizes are bounded.
 
 ### Controlled command execution
 
@@ -889,7 +1028,7 @@ The build tool runs only the repository's Maven Wrapper with fixed arguments:
 --batch-mode --no-transfer-progress test
 ```
 
-API callers cannot submit commands or command-line arguments.
+API clients cannot submit commands or command-line arguments.
 
 ### Artifact lineage
 
@@ -900,13 +1039,29 @@ preserved instead of overwritten.
 ### Revision-bound approval
 
 Approval keys contain the release task and workflow revision. Incrementing the
-revision prevents old approval evidence from satisfying a new release gate.
+revision prevents earlier approval evidence from satisfying a new release gate.
+
+### Audit events versus metrics
+
+Audit events preserve workflow-specific evidence such as workflow revision,
+task identity, actor, detail, and timestamp. Metrics provide aggregated
+operational measurements suitable for monitoring.
+
+Workflow IDs are not used as metric tags because unbounded tag values would
+create high-cardinality telemetry and increase monitoring cost.
+
+### In-memory audit journal
+
+The current audit journal uses thread-safe in-memory storage and returns events
+in chronological order. The `AuditJournal` interface isolates the implementation
+so a persistent append-only database or external event store can replace it
+without changing orchestration logic.
 
 ### Lombok and JPA
 
 Lombok is used for DTOs and constructor injection. JPA entities avoid `@Data`
-because generated equality, hashing, and string behavior are unsafe for mutable
-persistence entities.
+because generated equality, hashing, and string behavior can be unsafe for
+mutable persistence entities.
 
 ## Testing
 
@@ -931,6 +1086,10 @@ The test suite covers:
 - Controlled Maven tool rejection
 - Release policy enforcement
 - Revision-bound approval gates
+- Audit-event recording and chronological ordering
+- Workflow-engine audit integration
+- Workflow, task, retry, approval, and safe-stop metrics
+- Metric tags and counter values
 
 Run:
 
@@ -940,27 +1099,27 @@ Run:
 
 ## Current limitations
 
-- Workflow state is currently stored in memory.
+- Workflow state is stored in memory.
 - The artifact catalog is in memory, although artifact files remain on disk.
+- Audit events are stored in memory and are lost when the application restarts.
+- Metrics are process-local unless collected by an external monitoring system.
+- Durable database or external event-store audit persistence is not implemented.
 - Approval and safe-stop evidence is stored in workflow context.
 - `X-Actor` is not authenticated by a security provider.
 - Requirement analysis is deterministic rather than model-backed.
 - Implementation output is a reviewable plan, not an applied source patch.
-- Isolated patch application and rollback are not implemented yet.
+- Isolated patch application and rollback are not implemented.
 - Greenfield workflows do not materialize a source repository.
-- Clarification submission and dynamic replanning are not implemented yet.
+- Clarification submission and dynamic replanning are not implemented.
 - Safe stop does not forcibly terminate an already running Maven process.
-- Audit-grade event persistence and reliability metrics are not implemented yet.
-- Redirect analytics are not implemented yet.
-- The application is not yet packaged in Docker Compose.
+- Redirect analytics are not implemented.
+- The complete application is not yet packaged with Docker Compose.
 - GitHub Actions CI is not implemented yet.
 
 ## Planned next capabilities
 
-- Clarification-driven workflow replanning
-- Approval invalidation evidence after replan
-- Persistent audit events
-- Reliability and latency metrics
-- Runnable greenfield, brownfield, and ambiguous scenarios
-- Docker application image
-- GitHub Actions CI and coverage gates
+- Runnable greenfield, brownfield, and ambiguous demonstration scenarios
+- Docker application image and complete Docker Compose environment
+- GitHub Actions CI
+- Automated test and coverage gates
+- Final architecture and operational documentation

@@ -1,0 +1,17 @@
+package com.navya.agentic_url_shortener.audit;
+
+public enum AuditEventType {
+    WORKFLOW_CREATED,
+    WORKFLOW_STARTED,
+    PLAN_GENERATED,
+    TASK_STARTED,
+    TASK_SUCCEEDED,
+    TASK_FAILED,
+    TASK_RETRIED,
+    CLARIFICATION_REQUIRED,
+    APPROVAL_GRANTED,
+    POLICY_EVALUATED,
+    SAFE_STOPPED,
+    WORKFLOW_COMPLETED,
+    WORKFLOW_FAILED
+}
