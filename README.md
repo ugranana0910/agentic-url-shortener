@@ -1,45 +1,39 @@
 # Agentic URL Shortener
 
-A production-oriented URL-shortening service and agentic software-engineering
-orchestration prototype built with Java 21 and Spring Boot 4.1.0.
+A production-oriented URL-shortening service and controlled agentic
+software-engineering orchestration platform built with Java 21 and Spring Boot
+4.1.0.
 
-The project combines:
+The project demonstrates two connected capabilities:
 
-1. A URL-shortening API with durable request idempotency.
-2. An agentic engineering system that analyzes requirements, generates dynamic
-   dependency graphs, inspects brownfield repositories, creates reviewable
-   engineering artifacts, executes validation, enforces governed approval, and
-   records auditable engineering outcomes.
+1. A production-style URL-shortening API with durable idempotency.
+2. An agentic engineering system that transforms requirements into planned,
+   validated, governed, observable, and reviewable engineering outcomes.
 
-## Current status
+## Status
 
-Implemented through Commit 9:
+Implemented through Commit 10:
 
-- Core URL-shortening APIs
-- PostgreSQL-backed idempotent URL creation
-- Versioned engineering workflows
-- Explicit dependency-graph execution
-- Sequential and parallel execution
-- Entry, exit, validation, and approval gates
-- Bounded task retries
-- Requirement normalization and ambiguity detection
-- Scenario-aware dynamic planning
-- Controlled brownfield repository inspection
-- Versioned engineering artifacts with SHA-256 hashes
-- Controlled Maven test execution
-- Release policies and mandatory approval
-- Safe-stop control
+- Production-oriented URL-shortening APIs
+- PostgreSQL-backed durable idempotency
+- Requirement analysis and ambiguity detection
+- Scenario-aware dynamic workflow planning
+- Directed acyclic task graphs
+- Sequential and parallel task execution
+- Controlled brownfield repository analysis
+- Versioned engineering artifacts
+- Executable Maven validation
+- Policy-backed release gates
+- Human approval and safe-stop controls
 - Structured workflow audit events
-- Chronological per-workflow audit history
-- Workflow, task, retry, approval, clarification, and safe-stop metrics
-- Workflow execution-duration metrics
-- Spring Boot Actuator metric exposure
+- Micrometer and Prometheus metrics
+- JaCoCo coverage verification
+- Non-root Docker application image
+- Docker Compose environment
+- GitHub Actions CI pipeline
+- Architecture and operational documentation
 
-The final stage adds executable demonstration scenarios, Docker application
-packaging, GitHub Actions CI, coverage reporting, and final production
-documentation.
-
-## Implemented capabilities
+## Core capabilities
 
 ### URL shortener
 
@@ -53,139 +47,217 @@ documentation.
 - URL details API
 - Public redirect API
 - PostgreSQL persistence
-- Flyway-controlled schema migrations
+- Flyway-controlled migrations
 - RFC 9457 Problem Details responses
 
 ### Durable idempotency
 
-- Required `Idempotency-Key` header
+`POST /api/v1/urls` requires an `Idempotency-Key` header.
+
+The implementation provides:
+
 - PostgreSQL-backed idempotency reservations
-- SHA-256 request fingerprinting
-- Same key and payload replay the original resource
-- Same key with a different payload returns `409 Conflict`
+- SHA-256 request fingerprints
+- Equivalent-request replay
+- Payload-conflict detection
 - In-progress duplicate detection
-- Failed and timed-out reservation recovery
+- Failed-reservation recovery
+- Timed-out reservation recovery
 - Original response-status preservation
+- Database locking for concurrent requests
 - `Idempotency-Replayed` response header
-- Database locking for concurrent reservation handling
+
+The expected behavior is:
+
+| Situation | Result |
+|---|---|
+| First key and payload | Creates the URL and returns `201 Created` |
+| Same key and same payload | Replays the original `201` response |
+| Same key and different payload | Returns `409 Conflict` |
+| Equivalent concurrent request | Serialized through the database reservation |
+| Failed or expired reservation | Can be retried safely |
 
 ### Requirement understanding
 
-- Deterministic requirement normalization
+- Requirement normalization
 - Acceptance-criteria generation
 - Assumption recording
 - Ambiguity detection
-- Clarification pause
+- Clarification questions
 - Risk classification
-- Documentation-only request detection
+- Documentation-only detection
 - High-risk requirement detection
 
-### Dynamic workflow planning
+### Dynamic planning
 
-- Greenfield workflow planning
-- Brownfield workflow planning
-- Documentation-only workflow optimization
-- High-risk security-review paths
-- Requirement-dependent task graphs
-- Automatic workflow execution API
-- Workflow inspection API
+The generated task graph depends on:
+
+- Scenario type
+- Requirement ambiguity
+- Requirement risk
+- Repository availability
+- Documentation-only intent
+- Validation requirements
+- Human approval requirements
+
+The application does not use one fixed workflow for every request.
 
 ### Agentic orchestration
 
 - Versioned engineering workflows
-- Explicit directed acyclic dependency graph
+- Explicit directed acyclic graphs
 - Missing-dependency validation
 - Cycle detection
-- Sequential execution
+- Sequential task execution
 - Parallel task waves
 - Join synchronization
-- Entry and exit gates
-- Context-key gates
+- Entry gates
+- Exit gates
+- Context-evidence gates
 - Human-approval gates
-- Thread-safe cross-stage context
-- Automatic task execution
-- Bounded task retries
+- Bounded retries
 - Virtual-thread execution
-- In-memory workflow repository
+- Thread-safe workflow context
 
 ### Controlled repository reasoning
 
 - Approved repository-root enforcement
 - Path-traversal prevention
 - Workspace-escape prevention
+- File-count limits
+- File-size limits
 - Recursive source and test discovery
-- Maven, Gradle, and Node build-system detection
-- Module detection
+- Maven, Gradle, and Node build detection
+- Module discovery
 - Flyway migration discovery
-- Configuration and documentation discovery
+- Configuration discovery
+- Documentation discovery
 - Requirement-based impacted-file identification
-- File-count and file-size limits
-- Generated repository-analysis evidence
 
 ### Engineering artifacts
 
-- Workflow-specific artifact directories
-- Revision-specific artifact directories
-- Producing-task identity
-- Artifact type and filename
-- SHA-256 integrity hashes
-- Creation timestamps and sizes
-- Append-only file creation
-- Workflow artifact catalog API
+Generated artifacts are isolated by workflow and revision:
+
+```text
+agent-workspaces/{workflowId}/revision-{revision}/artifacts/
+|-- repository-analysis.md
+|-- architecture.md
+|-- implementation-plan.md
+|-- test-plan.md
+|-- maven-test-attempt-1.log
+`-- validation-report-attempt-1.md
+```
+
+Each artifact reference records:
+
+- Workflow ID
+- Workflow revision
+- Producing task
+- Artifact type
+- Filename
+- Relative path
+- Creation timestamp
+- Size
+- SHA-256 hash
+
+Retry evidence is preserved rather than overwritten:
+
+```text
+maven-test-attempt-2.log
+validation-report-attempt-2.md
+```
 
 ### Executable validation
 
-- Requirement-specific implementation-plan artifacts
-- Requirement-specific test-plan artifacts
-- Controlled Maven Wrapper execution
-- Fixed allowlisted Maven arguments
-- Process timeout enforcement
-- Output-size limits
-- Exit-code validation
-- Captured Maven logs
-- Attempt-specific validation evidence
-- Validation decision reports
-- Failed validation blocks downstream release readiness
+Brownfield validation executes the repository Maven Wrapper using fixed,
+application-controlled arguments:
 
-### Governance and release control
+```text
+--batch-mode --no-transfer-progress test
+```
+
+Validation includes:
+
+- Command allowlisting
+- Fixed Maven arguments
+- Process timeout
+- Output-size limits
+- Exit-code verification
+- Captured build logs
+- Attempt-specific validation reports
+- Validation evidence hashes
+- Failure propagation to release gates
+
+API clients cannot provide arbitrary commands or command-line arguments.
+
+### Governance
 
 - Mandatory release-readiness approval
-- Approval identity supplied through `X-Actor`
-- Request bodies cannot specify or impersonate the approver
-- Approval bound to workflow revision
-- Approval bound to current artifact hashes
+- Policy evaluation before approval
 - Validation-success policy
 - Validation-evidence policy
 - Architecture-evidence policy
-- Automatic workflow continuation after approval
-- Safe-stop endpoint
+- Actor identity supplied through `X-Actor`
+- Approval bound to workflow revision
+- Approval bound to artifact hashes
+- Safe-stop support
 - Pending-task cancellation
-- Safe-stop actor and reason preservation
+- Actor and reason preservation
 
-### Auditability and observability
+### Auditability
 
-- Structured audit events with unique event IDs
-- Workflow and revision association
-- Optional task association
-- Actor and event-detail preservation
-- Chronologically ordered workflow history
-- Workflow-created and workflow-started events
-- Plan-generation events
-- Task-started, succeeded, failed, and retried events
-- Clarification-required events
-- Policy-evaluation events
-- Approval-granted events
-- Safe-stop events
-- Workflow-completed and workflow-failed events
-- Micrometer counters for workflow outcomes
-- Scenario-tagged workflow metrics
-- Task-type and outcome metrics
+Structured audit events include:
+
+```text
+WORKFLOW_CREATED
+PLAN_GENERATED
+WORKFLOW_STARTED
+TASK_STARTED
+TASK_SUCCEEDED
+TASK_FAILED
+TASK_RETRIED
+CLARIFICATION_REQUIRED
+POLICY_EVALUATED
+APPROVAL_GRANTED
+SAFE_STOPPED
+WORKFLOW_COMPLETED
+WORKFLOW_FAILED
+```
+
+Each event records:
+
+- Unique event ID
+- Workflow ID
+- Workflow revision
+- Optional task ID
+- Event type
+- Actor
+- Detail
+- Timestamp
+
+### Observability
+
+Micrometer and Spring Boot Actuator expose:
+
+- Workflow-started counters
+- Workflow-completed counters
+- Workflow-failed counters
+- Task-success counters
+- Task-failure counters
 - Retry counters
-- Approval and safe-stop counters
+- Clarification counters
+- Approval counters
+- Safe-stop counters
 - Workflow-duration timers
-- Spring Boot Actuator metric inspection
+- Prometheus-formatted metrics
+
+Workflow IDs are deliberately excluded from metric tags to prevent
+high-cardinality telemetry.
 
 ## Architecture
+
+A detailed architecture description is available in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ```text
                          Client
@@ -196,7 +268,7 @@ documentation.
        URL Shortener API       Engineering Workflow API
               |                         |
               v                         v
-     Idempotent Creation       Requirement Analyzer
+       Idempotency Layer       Requirement Analyzer
               |                         |
               v                         v
        ShortUrlService         Scenario-Aware Planner
@@ -236,7 +308,7 @@ documentation.
               Audit Journal                              Micrometer Metrics
                     |                                           |
                     v                                           v
-          Workflow Audit API                         Spring Boot Actuator
+          Workflow Audit API                         Actuator/Prometheus
 ```
 
 ## Workflow states
@@ -269,14 +341,14 @@ RUNNING
 ```text
 Requirement analysis
     -> Architecture
-    -> Implementation plan and test plan in parallel
-    -> Conditional validation report
+    -> Implementation plan and test plan
+    -> Conditional validation
     -> Documentation
     -> Approval
     -> Release readiness
 ```
 
-Greenfield validation is conditional because the workflow does not currently
+Greenfield validation is conditional because the current prototype does not
 materialize a new source repository.
 
 ### Brownfield
@@ -285,7 +357,7 @@ materialize a new source repository.
 Requirement analysis
     -> Repository analysis
     -> Architecture
-    -> Implementation plan and test plan in parallel
+    -> Implementation plan and test plan
     -> Controlled Maven validation
     -> Documentation
     -> Policy evaluation
@@ -300,8 +372,8 @@ Requirement analysis
     -> AWAITING_CLARIFICATION
 ```
 
-No architecture, implementation, or validation work starts until clarification
-is available.
+Architecture, implementation, and validation tasks do not start when mandatory
+clarification is required.
 
 ## Technology
 
@@ -312,60 +384,59 @@ is available.
 - Hibernate ORM
 - PostgreSQL 17
 - Flyway
-- Maven
+- Maven Wrapper
 - Lombok
 - Jakarta Validation
 - JUnit
 - AssertJ
 - Mockito
+- JaCoCo
 - Micrometer
+- Prometheus
 - Spring Boot Actuator
+- Docker
 - Docker Compose
+- GitHub Actions
 - Java virtual threads
 
 ## Project structure
 
 ```text
-src/main/java/com/navya/agentic_url_shortener/
-|-- agent/
-|   |-- architecture/
-|   |-- implementation/
-|   |-- repository/
-|   |-- requirement/
-|   |-- testing/
-|   `-- validation/
-|-- artifact/
-|-- audit/
-|-- common/
-|-- config/
-|-- governance/
-|-- idempotency/
-|   |-- domain/
-|   |-- dto/
-|   |-- exception/
-|   |-- repository/
-|   `-- service/
-|-- orchestration/
-|   |-- controller/
-|   |-- domain/
-|   |-- dto/
-|   |-- engine/
-|   |-- exception/
-|   |-- gate/
-|   |-- planner/
-|   |-- repository/
-|   `-- service/
-|-- policy/
-|-- tool/
-|   |-- build/
-|   `-- repository/
-`-- url/
-    |-- controller/
-    |-- domain/
-    |-- dto/
-    |-- exception/
-    |-- repository/
-    `-- service/
+.
+|-- .github/
+|   `-- workflows/
+|       `-- ci.yml
+|-- docs/
+|   `-- ARCHITECTURE.md
+|-- src/
+|   |-- main/
+|   |   |-- java/com/navya/agentic_url_shortener/
+|   |   |   |-- agent/
+|   |   |   |-- artifact/
+|   |   |   |-- audit/
+|   |   |   |-- common/
+|   |   |   |-- config/
+|   |   |   |-- governance/
+|   |   |   |-- idempotency/
+|   |   |   |-- orchestration/
+|   |   |   |-- policy/
+|   |   |   |-- tool/
+|   |   |   `-- url/
+|   |   `-- resources/
+|   |       |-- db/migration/
+|   |       `-- application.yaml
+|   `-- test/
+|       |-- java/
+|       `-- resources/
+|-- .dockerignore
+|-- .env.example
+|-- .gitignore
+|-- Dockerfile
+|-- docker-compose.yml
+|-- mvnw
+|-- mvnw.cmd
+|-- pom.xml
+`-- README.md
 ```
 
 ## Prerequisites
@@ -376,7 +447,8 @@ Install:
 - Docker Desktop
 - Git
 
-Maven installation is not required because the Maven Wrapper is included.
+A separate Maven installation is not required because the Maven Wrapper is
+included.
 
 Verify:
 
@@ -384,13 +456,12 @@ Verify:
 java -version
 docker version
 docker compose version
+git --version
 ```
 
 ## Local development
 
-### Start PostgreSQL
-
-Run from the project root:
+### Start PostgreSQL only
 
 ```powershell
 docker compose up -d postgres
@@ -405,16 +476,31 @@ Wait until `agentic-url-shortener-postgres` reports `healthy`.
 .\mvnw.cmd clean test
 ```
 
-A successful run ends with:
+### Run tests with coverage verification
+
+```powershell
+.\mvnw.cmd clean verify
+```
+
+A successful build ends with:
 
 ```text
 BUILD SUCCESS
 ```
 
-### Start the application
+The JaCoCo report is generated at:
 
-Always run the application from the project root so relative repository and
-artifact paths resolve consistently:
+```text
+target/site/jacoco/index.html
+```
+
+Open it on Windows:
+
+```powershell
+Invoke-Item ".\target\site\jacoco\index.html"
+```
+
+### Start the application locally
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -442,41 +528,143 @@ Expected:
 }
 ```
 
+## Docker deployment
+
+### Validate the Compose configuration
+
+```powershell
+docker compose config
+```
+
+### Build the application image
+
+```powershell
+docker compose build
+```
+
+### Start PostgreSQL and the application
+
+Make sure no locally running application is already using port `8080`.
+
+```powershell
+docker compose up -d
+docker compose ps
+```
+
+Expected services:
+
+```text
+agentic-url-shortener-postgres
+agentic-url-shortener-app
+```
+
+Wait until both containers report `healthy`.
+
+### View logs
+
+```powershell
+docker compose logs application
+docker compose logs postgres
+```
+
+Follow application logs:
+
+```powershell
+docker compose logs -f application
+```
+
+### Verify the containerized application
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/health"
+```
+
+### Stop containers
+
+```powershell
+docker compose down
+```
+
+This preserves named volumes.
+
+To remove containers and named volumes:
+
+```powershell
+docker compose down --volumes
+```
+
+The `--volumes` operation deletes local PostgreSQL and workspace data and should
+only be used when that data is no longer needed.
+
 ## URL API
 
 ### Create a short URL
 
-```http
-POST /api/v1/urls
-Content-Type: application/json
-Idempotency-Key: request-123
+```powershell
+$response = Invoke-WebRequest `
+    -Method Post `
+    -Uri "http://localhost:8080/api/v1/urls" `
+    -Headers @{
+        "Idempotency-Key" = "request-123"
+    } `
+    -ContentType "application/json" `
+    -Body '{
+      "url": "https://example.com/products?id=10",
+      "expiresAt": "2027-08-13T12:00:00Z"
+    }'
+
+$response.StatusCode
+$response.Headers["Idempotency-Replayed"]
+$response.Content
 ```
 
-```json
-{
-  "url": "https://example.com/products?id=10",
-  "expiresAt": "2027-08-13T12:00:00Z"
-}
-```
+Expected first response:
 
-First request:
-
-```http
-HTTP/1.1 201 Created
+```text
+Status: 201
 Idempotency-Replayed: false
 ```
 
-Equivalent replay:
+### Replay the request
 
-```http
-HTTP/1.1 201 Created
+Run the same request with the same key and payload.
+
+Expected:
+
+```text
+Status: 201
 Idempotency-Replayed: true
 ```
 
-The same key with a different payload returns:
+The application returns the original resource representation.
 
-```http
-HTTP/1.1 409 Conflict
+### Test an idempotency conflict
+
+```powershell
+try {
+    Invoke-RestMethod `
+        -Method Post `
+        -Uri "http://localhost:8080/api/v1/urls" `
+        -Headers @{
+            "Idempotency-Key" = "request-123"
+        } `
+        -ContentType "application/json" `
+        -Body '{
+          "url": "https://different.example.com",
+          "expiresAt": null
+        }'
+} catch {
+    $_.Exception.Response.StatusCode
+    $_.ErrorDetails.Message
+}
+```
+
+Expected:
+
+```text
+409 Conflict
 ```
 
 ### Retrieve URL details
@@ -498,7 +686,7 @@ HTTP/1.1 302 Found
 Location: https://example.com/products?id=10
 ```
 
-An expired or disabled link returns `410 Gone`. An unknown short code returns
+An expired or disabled link returns `410 Gone`. An unknown code returns
 `404 Not Found`.
 
 ## Engineering workflow API
@@ -506,7 +694,7 @@ An expired or disabled link returns `410 Gone`. An unknown short code returns
 ### Create a brownfield workflow
 
 The repository path is resolved relative to `AGENT_REPOSITORY_ROOT`. Use `"."`
-to analyze this project.
+to analyze the configured repository root.
 
 ```powershell
 $workflow = Invoke-RestMethod `
@@ -520,12 +708,13 @@ $workflow = Invoke-RestMethod `
     }'
 ```
 
-The request runs controlled Maven validation and may take longer than an
-ordinary API call.
+Controlled Maven validation may make this request take longer than an ordinary
+API request.
 
-Check the result:
+Inspect the result:
 
 ```powershell
+$workflow.id
 $workflow.status
 $workflow.revision
 ```
@@ -537,15 +726,13 @@ AWAITING_APPROVAL
 1
 ```
 
-Inspect the graph:
+Inspect the generated task graph:
 
 ```powershell
 $workflow.tasks |
     Select-Object name, type, status, dependencyIds, attempt, failureMessage |
     Format-Table -AutoSize
 ```
-
-The release-readiness task remains `PENDING` until approval.
 
 ### Create a greenfield workflow
 
@@ -561,7 +748,7 @@ $greenfield = Invoke-RestMethod `
     }'
 ```
 
-A greenfield plan does not include `REPOSITORY_ANALYSIS`.
+A greenfield plan does not contain a `REPOSITORY_ANALYSIS` task.
 
 ### Create an ambiguous workflow
 
@@ -577,13 +764,13 @@ $ambiguous = Invoke-RestMethod `
     }'
 ```
 
-Expected:
+Expected status:
 
 ```text
 AWAITING_CLARIFICATION
 ```
 
-Inspect ambiguity questions:
+Inspect clarification questions:
 
 ```powershell
 $ambiguous.context.ambiguities
@@ -591,26 +778,17 @@ $ambiguous.context.ambiguities
 
 ### Retrieve a workflow
 
-```http
-GET /api/v1/engineering-workflows/{workflowId}
-```
-
 ```powershell
 Invoke-RestMethod `
     -Method Get `
     -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)"
 ```
 
-Workflow state is currently available for the lifetime of the application
-process because workflow persistence remains in memory.
+Workflow state is retained for the lifetime of the current application process.
 
-## Engineering artifacts
+## Engineering artifact API
 
 ### List artifacts
-
-```http
-GET /api/v1/engineering-workflows/{workflowId}/artifacts
-```
 
 ```powershell
 $artifacts = Invoke-RestMethod `
@@ -622,37 +800,7 @@ $artifacts |
     Format-Table -AutoSize
 ```
 
-### Generated artifact bundle
-
-A successful brownfield workflow currently produces:
-
-```text
-agent-workspaces/{workflowId}/revision-{revision}/artifacts/
-|-- repository-analysis.md
-|-- architecture.md
-|-- implementation-plan.md
-|-- test-plan.md
-|-- maven-test-attempt-1.log
-`-- validation-report-attempt-1.md
-```
-
-| Artifact | Purpose |
-|---|---|
-| `repository-analysis.md` | Records project structure, build system, modules, tests, migrations, configuration, and impacted files |
-| `architecture.md` | Records design, compatibility concerns, risks, controls, and trade-offs |
-| `implementation-plan.md` | Records the requirement-specific implementation sequence and safety constraints |
-| `test-plan.md` | Records unit, integration, regression, and validation criteria |
-| `maven-test-attempt-1.log` | Preserves controlled Maven test output |
-| `validation-report-attempt-1.md` | Records command, exit code, timeout state, duration, log hash, and gate decision |
-
-Retries preserve earlier evidence:
-
-```text
-maven-test-attempt-2.log
-validation-report-attempt-2.md
-```
-
-### Read an artifact
+### Read a generated artifact
 
 ```powershell
 $repositoryArtifact = $artifacts |
@@ -671,6 +819,9 @@ $repositoryArtifactPath = Join-Path `
 Get-Content -LiteralPath $repositoryArtifactPath
 ```
 
+When the application runs inside Docker, artifacts are stored inside the named
+`agentic_url_shortener_workspaces` volume.
+
 ### Verify an artifact hash
 
 ```powershell
@@ -680,15 +831,11 @@ Get-Content -LiteralPath $repositoryArtifactPath
 ).Hash.ToLower()
 ```
 
-The result should equal the API response's `sha256` value.
+The result should equal the artifact API response's `sha256` value.
 
 ## Governance API
 
 ### Inspect release policies
-
-```http
-GET /api/v1/engineering-workflows/{workflowId}/governance/policies
-```
 
 ```powershell
 $policies = Invoke-RestMethod `
@@ -699,7 +846,7 @@ $policies |
     Format-Table policy, passed, detail -AutoSize
 ```
 
-A valid brownfield workflow should pass:
+Expected brownfield policies include:
 
 ```text
 POL-VALIDATION-PASSED
@@ -708,12 +855,6 @@ POL-ARCHITECTURE-EVIDENCE
 ```
 
 ### Approve release readiness
-
-```http
-POST /api/v1/engineering-workflows/{workflowId}/governance/approvals/release-readiness
-X-Actor: navya
-Content-Type: application/json
-```
 
 ```powershell
 $approved = Invoke-RestMethod `
@@ -724,42 +865,33 @@ $approved = Invoke-RestMethod `
     } `
     -ContentType "application/json" `
     -Body '{
-      "reason": "Validation and generated engineering artifacts were reviewed"
+      "reason": "Validation and engineering artifacts were reviewed"
     }'
+
+$approved.status
 ```
 
 Expected:
-
-```powershell
-$approved.status
-```
 
 ```text
 COMPLETED
 ```
 
-Approval records include:
+Approval evidence contains:
 
 - Workflow ID
 - Workflow revision
 - Approver
 - Reason
-- Current artifact hashes
+- Artifact hashes
 - Approval timestamp
 
-A changed workflow revision does not satisfy an earlier approval gate.
+A changed workflow revision cannot reuse an earlier approval.
 
-`X-Actor` is a prototype identity boundary. It demonstrates that identity comes
-from request context rather than an approver field in the JSON body. Production
-deployment requires integration with an authenticated principal.
+`X-Actor` is a prototype identity boundary. A production deployment should
+replace it with an authenticated principal supplied by the security context.
 
 ### Safely stop a workflow
-
-```http
-POST /api/v1/engineering-workflows/{workflowId}/governance/safe-stop
-X-Actor: navya
-Content-Type: application/json
-```
 
 ```powershell
 $stopped = Invoke-RestMethod `
@@ -772,6 +904,8 @@ $stopped = Invoke-RestMethod `
     -Body '{
       "reason": "Required clarification is unavailable"
     }'
+
+$stopped.status
 ```
 
 Expected:
@@ -780,17 +914,12 @@ Expected:
 SAFE_STOPPED
 ```
 
-Safe stop prevents pending work from starting, cancels pending or blocked tasks,
-and preserves the actor and reason. It does not forcibly interrupt an already
-running external Maven process in this prototype.
+Safe stop prevents pending work from starting and preserves the actor and
+reason.
 
-## Audit and observability
+## Audit API
 
-### Retrieve workflow audit events
-
-```http
-GET /api/v1/engineering-workflows/{workflowId}/audit-events
-```
+Retrieve workflow audit events:
 
 ```powershell
 $auditEvents = Invoke-RestMethod `
@@ -798,14 +927,11 @@ $auditEvents = Invoke-RestMethod `
     -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)/audit-events"
 
 $auditEvents |
-    Select-Object occurredAt, type, taskId, actor, detail |
+    Select-Object type, actor, detail, occurredAt |
     Format-Table -AutoSize
 ```
 
-Events are returned in chronological order and are scoped to the requested
-workflow.
-
-Depending on the workflow path, the history can contain:
+For an ambiguous workflow, expected events include:
 
 ```text
 WORKFLOW_CREATED
@@ -813,31 +939,17 @@ PLAN_GENERATED
 WORKFLOW_STARTED
 TASK_STARTED
 TASK_SUCCEEDED
-TASK_FAILED
-TASK_RETRIED
 CLARIFICATION_REQUIRED
-POLICY_EVALUATED
-APPROVAL_GRANTED
-SAFE_STOPPED
-WORKFLOW_COMPLETED
-WORKFLOW_FAILED
 ```
 
-Each event contains:
+An unknown or stale workflow ID returns `404 Not Found`.
 
-- Unique event ID
-- Workflow ID
-- Workflow revision
-- Optional task ID
-- Event type
-- Actor
-- Detail
-- Occurrence timestamp
+Because workflows and audit events are currently in memory, create a new
+workflow after every application restart before testing this endpoint.
 
-The API validates that the workflow exists before returning its history. An
-unknown workflow ID returns `404 Not Found`.
+## Metrics
 
-### Inspect available metrics
+### List Actuator metrics
 
 ```powershell
 Invoke-RestMethod `
@@ -845,7 +957,7 @@ Invoke-RestMethod `
     -Uri "http://localhost:8080/actuator/metrics"
 ```
 
-Workflow lifecycle metrics:
+### Workflow metrics
 
 ```powershell
 Invoke-RestMethod `
@@ -853,7 +965,7 @@ Invoke-RestMethod `
     -Uri "http://localhost:8080/actuator/metrics/agentic.workflows"
 ```
 
-Task metrics:
+### Task metrics
 
 ```powershell
 Invoke-RestMethod `
@@ -861,7 +973,7 @@ Invoke-RestMethod `
     -Uri "http://localhost:8080/actuator/metrics/agentic.tasks"
 ```
 
-Retry metrics:
+### Retry metrics
 
 ```powershell
 Invoke-RestMethod `
@@ -869,7 +981,7 @@ Invoke-RestMethod `
     -Uri "http://localhost:8080/actuator/metrics/agentic.retries"
 ```
 
-Workflow-duration metrics:
+### Workflow-duration metrics
 
 ```powershell
 Invoke-RestMethod `
@@ -877,7 +989,7 @@ Invoke-RestMethod `
     -Uri "http://localhost:8080/actuator/metrics/agentic.workflow.duration"
 ```
 
-Additional metrics include:
+Additional metric names include:
 
 ```text
 agentic.clarifications
@@ -885,12 +997,14 @@ agentic.approvals
 agentic.safe.stops
 ```
 
-Metrics use bounded tags such as workflow scenario, task type, status, decision,
-and outcome. Workflow IDs and other unbounded values are intentionally excluded
-to avoid high-cardinality telemetry.
+### Prometheus output
 
-Audit events provide workflow-specific traceability. Metrics provide aggregated
-operational visibility.
+```powershell
+Invoke-WebRequest `
+    -Uri "http://localhost:8080/actuator/prometheus" |
+    Select-Object -ExpandProperty Content |
+    Select-String "agentic_"
+```
 
 ## Repository safety
 
@@ -898,12 +1012,6 @@ Repository access is restricted to:
 
 ```text
 AGENT_REPOSITORY_ROOT
-```
-
-Default:
-
-```text
-.
 ```
 
 A traversal request is rejected:
@@ -935,10 +1043,10 @@ Expected:
 
 API errors use RFC 9457 Problem Details.
 
-Current error categories include:
+Error categories include:
 
-- Invalid URL
 - Request validation failure
+- Invalid URL
 - Unknown short URL
 - Expired or disabled short URL
 - Invalid idempotency key
@@ -950,26 +1058,6 @@ Current error categories include:
 - Build validation failure
 - Governance operation rejection
 - Release policy violation
-
-## Database inspection
-
-```powershell
-docker exec `
-    agentic-url-shortener-postgres `
-    psql `
-    -U postgres `
-    -d agentic_url_shortener `
-    -c "\dt"
-```
-
-Expected:
-
-```text
-platform_metadata
-short_urls
-idempotency_records
-flyway_schema_history
-```
 
 ## Configuration
 
@@ -983,143 +1071,221 @@ flyway_schema_history
 | Short-code length | `SHORT_CODE_LENGTH` | `8` |
 | Generation attempts | `SHORT_CODE_GENERATION_ATTEMPTS` | `10` |
 | Idempotency retention | `IDEMPOTENCY_RETENTION` | `PT24H` |
-| In-progress timeout | `IDEMPOTENCY_IN_PROGRESS_TIMEOUT` | `PT2M` |
+| Reservation timeout | `IDEMPOTENCY_IN_PROGRESS_TIMEOUT` | `PT2M` |
 | Agent workspace | `AGENT_WORKSPACE_ROOT` | `./agent-workspaces` |
 | Approved repository root | `AGENT_REPOSITORY_ROOT` | `.` |
 | Maximum inspected files | `AGENT_REPOSITORY_MAX_FILES` | `2000` |
-| Maximum file size | `AGENT_REPOSITORY_MAX_FILE_SIZE_BYTES` | `1048576` |
-| Agent attempts | `AGENT_MAX_ATTEMPTS` | `2` |
+| Maximum inspected file size | `AGENT_REPOSITORY_MAX_FILE_SIZE_BYTES` | `1048576` |
+| Maximum task attempts | `AGENT_MAX_ATTEMPTS` | `2` |
 | Command timeout | `AGENT_COMMAND_TIMEOUT_SECONDS` | `120` |
 | Maximum command output | `AGENT_MAX_OUTPUT_CHARACTERS` | `100000` |
 | Model provider | `MODEL_PROVIDER` | `deterministic` |
 
-## Design decisions
+## Continuous integration
 
-### Database-backed idempotency
-
-Idempotency records live in PostgreSQL so duplicate handling survives application
-restarts and can work across multiple application instances.
-
-### Flyway-owned schemas
-
-Flyway owns schema creation and evolution. Hibernate uses `ddl-auto=validate` to
-verify mappings without modifying the production schema.
-
-### Dynamic workflow planning
-
-Plans depend on scenario, ambiguity, risk, and request type. The system does not
-apply one fixed sequence to every engineering requirement.
-
-### Controlled autonomy
-
-Ambiguous requirements stop before architecture or implementation. Validated
-engineering work stops before release readiness until a human approves it.
-
-### Controlled repository access
-
-Repository paths are resolved against an approved root. Normalized and real
-paths must remain within that root. Inspected file counts and sizes are bounded.
-
-### Controlled command execution
-
-The build tool runs only the repository's Maven Wrapper with fixed arguments:
+The GitHub Actions workflow is defined in:
 
 ```text
---batch-mode --no-transfer-progress test
+.github/workflows/ci.yml
 ```
 
-API clients cannot submit commands or command-line arguments.
+The pipeline runs on pushes and pull requests and performs:
 
-### Artifact lineage
+1. Repository checkout
+2. Java 21 setup
+3. Maven dependency caching
+4. Unit and application tests
+5. JaCoCo report generation
+6. Coverage-gate verification
+7. Test-report upload on failure
+8. JaCoCo artifact upload
+9. Docker Compose validation
+10. Docker image build validation
 
-Artifacts are separated by workflow and revision. Each reference records its
-producing task, type, hash, size, path, and creation time. Retry evidence is
-preserved instead of overwritten.
+Run the equivalent Maven validation locally:
 
-### Revision-bound approval
+```powershell
+.\mvnw.cmd clean verify
+```
 
-Approval keys contain the release task and workflow revision. Incrementing the
-revision prevents earlier approval evidence from satisfying a new release gate.
+Run the equivalent Docker validations locally:
 
-### Audit events versus metrics
-
-Audit events preserve workflow-specific evidence such as workflow revision,
-task identity, actor, detail, and timestamp. Metrics provide aggregated
-operational measurements suitable for monitoring.
-
-Workflow IDs are not used as metric tags because unbounded tag values would
-create high-cardinality telemetry and increase monitoring cost.
-
-### In-memory audit journal
-
-The current audit journal uses thread-safe in-memory storage and returns events
-in chronological order. The `AuditJournal` interface isolates the implementation
-so a persistent append-only database or external event store can replace it
-without changing orchestration logic.
-
-### Lombok and JPA
-
-Lombok is used for DTOs and constructor injection. JPA entities avoid `@Data`
-because generated equality, hashing, and string behavior can be unsafe for
-mutable persistence entities.
+```powershell
+docker compose config
+docker build --tag agentic-url-shortener:local .
+```
 
 ## Testing
 
 The test suite covers:
 
 - Application startup
-- URL validation and domain behavior
+- URL validation
+- URL domain behavior
 - Short-code generation
 - URL services
-- Idempotency fingerprints and transitions
+- Idempotency fingerprints
+- Idempotency state transitions
 - Workflow graph validation
-- Cycle and missing-dependency rejection
-- Parallel execution and synchronization
+- Cycle rejection
+- Missing-dependency rejection
+- Parallel execution
+- Join synchronization
 - Bounded retry
-- Requirement analysis and ambiguity detection
+- Requirement analysis
+- Ambiguity detection
 - Dynamic scenario planning
 - Documentation-only planning
 - Repository boundary enforcement
 - Repository analysis
-- Artifact generation and hashing
+- Artifact generation
+- Artifact hashing
 - Implementation-plan generation
 - Controlled Maven tool rejection
 - Release policy enforcement
-- Revision-bound approval gates
-- Audit-event recording and chronological ordering
+- Revision-bound approval
+- Audit-event ordering
 - Workflow-engine audit integration
-- Workflow, task, retry, approval, and safe-stop metrics
-- Metric tags and counter values
+- Workflow metrics
+- Task metrics
+- Retry metrics
+- Approval and safe-stop metrics
 
-Run:
+Run all tests and the coverage gate:
 
 ```powershell
-.\mvnw.cmd clean test
+.\mvnw.cmd clean verify
 ```
+
+## Design decisions
+
+### Database-backed idempotency
+
+Idempotency records are stored in PostgreSQL so duplicate handling survives
+application restarts and can operate across multiple instances.
+
+### Flyway-owned schemas
+
+Flyway owns schema creation and evolution. Hibernate uses
+`ddl-auto=validate` to verify mappings without changing the schema.
+
+### Dynamic planning
+
+Workflow graphs depend on scenario, ambiguity, risk, repository availability,
+and request intent.
+
+### Controlled autonomy
+
+Ambiguous requirements pause before implementation. Validated engineering work
+pauses before release readiness until a human grants approval.
+
+### Controlled repository access
+
+Normalized and real repository paths must remain within the approved root. File
+counts and file sizes are bounded.
+
+### Controlled command execution
+
+Only the repository Maven Wrapper can be invoked, using fixed arguments.
+API callers cannot submit commands.
+
+### Artifact lineage
+
+Artifacts are separated by workflow and revision and include their producing
+task, type, hash, size, path, and timestamp.
+
+### Revision-bound approval
+
+An approval is bound to the workflow revision and current artifact hashes.
+Changing the revision invalidates earlier approval evidence.
+
+### Audit events and metrics
+
+Audit events provide workflow-specific traceability. Metrics provide aggregate
+operational visibility.
+
+Workflow IDs are not metric tags because unbounded identifiers would create
+high-cardinality telemetry.
+
+### Container runtime
+
+The application container runs as a non-root user. The runtime includes Maven
+and the project repository because controlled brownfield validation requires a
+build tool and reviewable repository input.
+
+### Coverage gate
+
+JaCoCo generates a coverage report during Maven `verify` and fails the build
+when the configured minimum line-coverage ratio is not satisfied.
 
 ## Current limitations
 
 - Workflow state is stored in memory.
-- The artifact catalog is in memory, although artifact files remain on disk.
-- Audit events are stored in memory and are lost when the application restarts.
-- Metrics are process-local unless collected by an external monitoring system.
-- Durable database or external event-store audit persistence is not implemented.
-- Approval and safe-stop evidence is stored in workflow context.
+- Artifact references are stored in memory, although generated files remain on
+  disk.
+- Audit events are stored in memory.
+- Workflow and audit state is lost after an application restart.
+- Metrics require external collection for long-term retention.
 - `X-Actor` is not authenticated by a security provider.
-- Requirement analysis is deterministic rather than model-backed.
-- Implementation output is a reviewable plan, not an applied source patch.
+- Requirement analysis uses a deterministic provider rather than an external
+  language model.
+- Implementation output is a reviewable implementation plan rather than an
+  automatically applied patch.
 - Isolated patch application and rollback are not implemented.
-- Greenfield workflows do not materialize a source repository.
+- Greenfield workflows do not materialize a new repository.
 - Clarification submission and dynamic replanning are not implemented.
-- Safe stop does not forcibly terminate an already running Maven process.
-- Redirect analytics are not implemented.
-- The complete application is not yet packaged with Docker Compose.
-- GitHub Actions CI is not implemented yet.
+- Safe stop does not forcibly terminate an already running external process.
+- Redirect analytics are used as a demonstration requirement but are not part
+  of the core URL API implementation.
 
-## Planned next capabilities
+## Production evolution
 
-- Runnable greenfield, brownfield, and ambiguous demonstration scenarios
-- Docker application image and complete Docker Compose environment
-- GitHub Actions CI
-- Automated test and coverage gates
-- Final architecture and operational documentation
+The current design provides clear extension points for:
+
+- PostgreSQL-backed workflow persistence
+- Persistent append-only audit storage
+- Authenticated actor identity
+- Model-backed requirement analysis
+- Clarification submission and replanning
+- Isolated workspace cloning
+- Patch generation and controlled patch application
+- Rollback execution
+- Distributed metrics collection
+- OpenTelemetry tracing
+- External artifact storage
+- Kubernetes deployment
+
+## Final verification
+
+Before submission, run:
+
+```powershell
+.\mvnw.cmd clean verify
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+Verify health:
+
+```powershell
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/actuator/health"
+```
+
+Verify Prometheus metrics:
+
+```powershell
+Invoke-WebRequest `
+    -Uri "http://localhost:8080/actuator/prometheus" |
+    Select-Object -ExpandProperty Content |
+    Select-String "agentic_"
+```
+
+Stop the environment:
+
+```powershell
+docker compose down
+```
