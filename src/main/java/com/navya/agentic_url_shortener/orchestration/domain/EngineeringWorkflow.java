@@ -101,7 +101,7 @@ public class EngineeringWorkflow {
         );
     }
 
-    public void start(Instant startedAt) {
+    public synchronized void start(Instant startedAt) {
         if (status != WorkflowStatus.CREATED) {
             throw new IllegalStateException(
                     "Only a created workflow can start"
@@ -112,7 +112,7 @@ public class EngineeringWorkflow {
         this.startedAt = Objects.requireNonNull(startedAt);
     }
 
-    public void complete(Instant completedAt) {
+    public synchronized void complete(Instant completedAt) {
         if (status != WorkflowStatus.RUNNING &&
                 status != WorkflowStatus.AWAITING_APPROVAL) {
             throw new IllegalStateException(
@@ -125,7 +125,7 @@ public class EngineeringWorkflow {
         this.completedAt = Objects.requireNonNull(completedAt);
     }
 
-    public void fail(
+    public synchronized void fail(
             String failureMessage,
             Instant completedAt
     ) {
@@ -134,15 +134,15 @@ public class EngineeringWorkflow {
         this.completedAt = Objects.requireNonNull(completedAt);
     }
 
-    public void awaitClarification() {
+    public synchronized void awaitClarification() {
         this.status = WorkflowStatus.AWAITING_CLARIFICATION;
     }
 
-    public void awaitApproval() {
+    public synchronized void awaitApproval() {
         this.status = WorkflowStatus.AWAITING_APPROVAL;
     }
 
-    public void resume() {
+    public synchronized void resume() {
         if (status != WorkflowStatus.AWAITING_CLARIFICATION &&
                 status != WorkflowStatus.AWAITING_APPROVAL) {
             throw new IllegalStateException(
@@ -153,13 +153,41 @@ public class EngineeringWorkflow {
         this.status = WorkflowStatus.RUNNING;
     }
 
-    public void incrementRevision() {
+    public synchronized void incrementRevision() {
         this.revision++;
     }
 
-    public void safeStop(Instant stoppedAt) {
+    public synchronized void safeStop(
+            Instant stoppedAt,
+            String reason,
+            String actor
+    ) {
+        if (isTerminal()) {
+            throw new IllegalStateException(
+                    "A terminal workflow cannot be safely stopped"
+            );
+        }
+
         tasks.values().forEach(WorkflowTask::cancel);
+
+        context.put("safeStopReason", reason);
+        context.put("safeStopActor", actor);
+
         this.status = WorkflowStatus.SAFE_STOPPED;
         this.completedAt = Objects.requireNonNull(stoppedAt);
+    }
+
+    public boolean isWaitingForApproval() {
+        return status == WorkflowStatus.AWAITING_APPROVAL;
+    }
+
+    public boolean isStopped() {
+        return status == WorkflowStatus.SAFE_STOPPED;
+    }
+
+    public boolean isTerminal() {
+        return status == WorkflowStatus.COMPLETED ||
+                status == WorkflowStatus.FAILED ||
+                status == WorkflowStatus.SAFE_STOPPED;
     }
 }

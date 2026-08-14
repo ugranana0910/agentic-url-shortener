@@ -38,6 +38,25 @@ public class WorkflowEngine {
         workflowRepository.save(workflow);
         workflow.start(clock.instant());
 
+        return continueExecution(workflow);
+    }
+
+    public EngineeringWorkflow resume(
+            EngineeringWorkflow workflow
+    ) {
+        if (workflow.getStatus()
+                != WorkflowStatus.RUNNING) {
+            throw new IllegalStateException(
+                    "Workflow must be RUNNING before execution resumes"
+            );
+        }
+
+        return continueExecution(workflow);
+    }
+
+    private EngineeringWorkflow continueExecution(
+            EngineeringWorkflow workflow
+    ) {
         while (workflow.getStatus()
                 == WorkflowStatus.RUNNING) {
 
@@ -61,9 +80,10 @@ public class WorkflowEngine {
             workflowRepository.save(workflow);
         }
 
+        workflowRepository.save(workflow);
+
         return workflow;
     }
-
     private List<WorkflowTask> findRunnableTasks(
             EngineeringWorkflow workflow
     ) {

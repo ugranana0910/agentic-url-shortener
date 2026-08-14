@@ -5,46 +5,36 @@ orchestration prototype built with Java 21 and Spring Boot 4.1.0.
 
 The project combines:
 
-1. A reliable URL-shortening API with durable request idempotency.
-2. An agentic engineering system that analyzes requirements, generates a
-   scenario-specific dependency graph, inspects brownfield repositories, and
-   produces traceable engineering artifacts.
+1. A URL-shortening API with durable request idempotency.
+2. An agentic engineering system that analyzes requirements, generates dynamic
+   dependency graphs, inspects brownfield repositories, creates reviewable
+   engineering artifacts, runs validation, and enforces governed release
+   approval.
 
 ## Current status
 
-Implemented through Commit 6:
+Implemented through Commit 8:
 
-- Production-style URL-shortening APIs
-- PostgreSQL-backed request idempotency
-- Versioned workflow execution
-- Explicit dependency graphs
-- Sequential and parallel task execution
-- Entry and exit gates
-- Bounded retries
+- Core URL-shortening APIs
+- PostgreSQL-backed idempotent URL creation
+- Versioned engineering workflows
+- Explicit dependency-graph execution
+- Sequential and parallel execution
+- Entry, exit, validation, and approval gates
+- Bounded task retries
 - Requirement normalization and ambiguity detection
-- Scenario-aware workflow planning
+- Scenario-aware dynamic planning
 - Controlled brownfield repository inspection
-- Versioned repository-analysis and architecture artifacts
-- SHA-256 artifact integrity hashes
+- Versioned engineering artifacts with SHA-256 hashes
+- Controlled Maven test execution
+- Release policies and mandatory approval
+- Safe-stop control
 
-Implementation-patch generation, executable validation, governance, recovery,
-metrics, scenarios, Docker application packaging, and CI are added in subsequent
-commits.
+The next stages add clarification-driven replanning, audit events, reliability
+metrics, executable scenarios, Docker application packaging, and GitHub Actions
+CI.
 
 ## Implemented capabilities
-### Executable validation
-
-- Requirement-specific implementation-plan artifacts
-- Requirement-specific test-plan artifacts
-- Controlled Maven Wrapper execution
-- Fixed allowlisted Maven arguments
-- Process timeout enforcement
-- Output-size limits
-- Exit-code validation
-- Captured Maven logs
-- Attempt-specific validation evidence
-- Validation decision reports
-- Failed validation blocks downstream release readiness
 
 ### URL shortener
 
@@ -69,10 +59,31 @@ commits.
 - Same key and payload replay the original resource
 - Same key with a different payload returns `409 Conflict`
 - In-progress duplicate detection
-- Recovery of failed or timed-out reservations
+- Failed and timed-out reservation recovery
 - Original response-status preservation
 - `Idempotency-Replayed` response header
 - Database locking for concurrent reservation handling
+
+### Requirement understanding
+
+- Deterministic requirement normalization
+- Acceptance-criteria generation
+- Assumption recording
+- Ambiguity detection
+- Clarification pause
+- Risk classification
+- Documentation-only request detection
+- High-risk requirement detection
+
+### Dynamic workflow planning
+
+- Greenfield workflow planning
+- Brownfield workflow planning
+- Documentation-only workflow optimization
+- High-risk security-review paths
+- Requirement-dependent task graphs
+- Automatic workflow execution API
+- Workflow inspection API
 
 ### Agentic orchestration
 
@@ -85,27 +96,12 @@ commits.
 - Join synchronization
 - Entry and exit gates
 - Context-key gates
-- Revision-bound approval gate model
+- Human-approval gates
 - Thread-safe cross-stage context
 - Automatic task execution
 - Bounded task retries
 - Virtual-thread execution
 - In-memory workflow repository
-
-### Requirement understanding and planning
-
-- Deterministic requirement normalization
-- Acceptance-criteria generation
-- Assumption recording
-- Ambiguity detection
-- Clarification pause
-- Risk classification
-- Documentation-only request detection
-- Greenfield workflow planning
-- Brownfield workflow planning
-- High-risk security-review planning
-- Automatic workflow creation and execution API
-- Workflow inspection API
 
 ### Controlled repository reasoning
 
@@ -125,77 +121,156 @@ commits.
 
 - Workflow-specific artifact directories
 - Revision-specific artifact directories
-- Artifact-producing task identity
-- SHA-256 artifact hashes
-- Artifact creation timestamps
-- Artifact sizes
+- Producing-task identity
+- Artifact type and filename
+- SHA-256 integrity hashes
+- Creation timestamps and sizes
 - Append-only file creation
-- Repository-analysis Markdown artifact
-- Architecture Markdown artifact
 - Workflow artifact catalog API
+
+### Executable validation
+
+- Requirement-specific implementation-plan artifacts
+- Requirement-specific test-plan artifacts
+- Controlled Maven Wrapper execution
+- Fixed allowlisted Maven arguments
+- Process timeout enforcement
+- Output-size limits
+- Exit-code validation
+- Captured Maven logs
+- Attempt-specific validation evidence
+- Validation decision reports
+- Failed validation blocks downstream release readiness
+
+### Governance and release control
+
+- Mandatory release-readiness approval
+- Approval identity supplied through `X-Actor`
+- Request bodies cannot specify or impersonate the approver
+- Approval bound to workflow revision
+- Approval bound to current artifact hashes
+- Validation-success policy
+- Validation-evidence policy
+- Architecture-evidence policy
+- Automatic workflow continuation after approval
+- Safe-stop endpoint
+- Pending-task cancellation
+- Safe-stop actor and reason preservation
 
 ## Architecture
 
 ```text
-                    Client
-                      |
-          +-----------+-----------+
-          |                       |
-          v                       v
-   URL Shortener API       Engineering Workflow API
-          |                       |
-          v                       v
- Idempotent Creation       Requirement Analyzer
-          |                       |
-          v                       v
-    ShortUrlService       Scenario-Aware Planner
-          |                       |
-          v                       v
-      PostgreSQL            Dependency Graph
-                                  |
-                    +-------------+-------------+
-                    |                           |
-                    v                           v
-          Repository Analysis          Architecture Design
-                    |                           |
-                    +-------------+-------------+
-                                  |
-                                  v
-                         Versioned Artifacts
+                         Client
+                           |
+              +------------+------------+
+              |                         |
+              v                         v
+       URL Shortener API       Engineering Workflow API
+              |                         |
+              v                         v
+     Idempotent Creation       Requirement Analyzer
+              |                         |
+              v                         v
+       ShortUrlService         Scenario-Aware Planner
+              |                         |
+              v                         v
+          PostgreSQL             Dependency Graph
+                                          |
+                    +---------------------+---------------------+
+                    |                                           |
+                    v                                           v
+           Repository Analysis                         Architecture Design
+                    |                                           |
+                    +---------------------+---------------------+
+                                          |
+                              +-----------+-----------+
+                              |                       |
+                              v                       v
+                    Implementation Plan          Test Plan
+                              |                       |
+                              +-----------+-----------+
+                                          |
+                                          v
+                                  Maven Validation
+                                          |
+                                          v
+                                    Policy Gates
+                                          |
+                                          v
+                                  Human Approval
+                                          |
+                                          v
+                                 Release Readiness
 ```
 
-Workflow execution:
+## Workflow states
 
 ```text
-Requirement
-    |
-    v
-Requirement analysis
-    |
-    +-- ambiguous --> AWAITING_CLARIFICATION
-    |
-    v
-Scenario-aware DAG
-    |
-    +-- greenfield --> Architecture
-    |
-    +-- brownfield --> Repository analysis --> Architecture
-    |
-    +-- docs-only --> Documentation --> Validation
-    |
-    v
-Parallel implementation and test-planning paths
-    |
-    v
-Join synchronization
-    |
-    v
-Validation and release-readiness stages
+CREATED
+   |
+   v
+RUNNING
+   |
+   +-- ambiguous requirement --> AWAITING_CLARIFICATION
+   |
+   +-- validation failure ----> FAILED
+   |
+   +-- release gates passed --> AWAITING_APPROVAL
+   |                               |
+   |                               v
+   |                         approval granted
+   |                               |
+   |                               v
+   +--------------------------> COMPLETED
+   |
+   +-- safe stop -----------> SAFE_STOPPED
 ```
 
-The implementation and validation stages currently produce deterministic
-structured outputs. Real patch generation and executable validation are added in
-the next commit.
+## Scenario behavior
+
+### Greenfield
+
+A greenfield workflow generates:
+
+```text
+Requirement analysis
+    -> Architecture
+    -> Implementation plan and test plan in parallel
+    -> Conditional validation report
+    -> Documentation
+    -> Approval
+    -> Release readiness
+```
+
+Greenfield validation is currently conditional because the workflow does not yet
+materialize a new source repository.
+
+### Brownfield
+
+A brownfield workflow generates:
+
+```text
+Requirement analysis
+    -> Repository analysis
+    -> Architecture
+    -> Implementation plan and test plan in parallel
+    -> Controlled Maven validation
+    -> Documentation
+    -> Policy evaluation
+    -> Approval
+    -> Release readiness
+```
+
+### Ambiguous
+
+An ambiguous workflow stops after requirement analysis:
+
+```text
+Requirement analysis
+    -> AWAITING_CLARIFICATION
+```
+
+No architecture or implementation work starts until clarification is available.
 
 ## Technology
 
@@ -221,8 +296,11 @@ the next commit.
 src/main/java/com/navya/agentic_url_shortener/
 |-- agent/
 |   |-- architecture/
+|   |-- implementation/
 |   |-- repository/
-|   `-- requirement/
+|   |-- requirement/
+|   |-- testing/
+|   `-- validation/
 |-- artifact/
 |-- audit/
 |-- common/
@@ -246,6 +324,7 @@ src/main/java/com/navya/agentic_url_shortener/
 |   `-- service/
 |-- policy/
 |-- tool/
+|   |-- build/
 |   `-- repository/
 `-- url/
     |-- controller/
@@ -266,7 +345,7 @@ Install:
 
 Maven installation is not required because the Maven Wrapper is included.
 
-Verify the tools:
+Verify:
 
 ```powershell
 java -version
@@ -278,7 +357,7 @@ docker compose version
 
 ### Start PostgreSQL
 
-From the project root:
+Run from the project root:
 
 ```powershell
 docker compose up -d postgres
@@ -287,7 +366,7 @@ docker compose ps
 
 Wait until `agentic-url-shortener-postgres` reports `healthy`.
 
-### Run the tests
+### Run tests
 
 ```powershell
 .\mvnw.cmd clean test
@@ -301,8 +380,8 @@ BUILD SUCCESS
 
 ### Start the application
 
-Always start it from the project root so relative repository and artifact paths
-are resolved consistently:
+Always start the application from the project root so relative repository and
+artifact paths resolve consistently:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -347,21 +426,21 @@ Idempotency-Key: request-123
 }
 ```
 
-First response:
+First request:
 
 ```http
 HTTP/1.1 201 Created
 Idempotency-Replayed: false
 ```
 
-Repeating the same key and payload returns the same resource:
+Equivalent replay:
 
 ```http
 HTTP/1.1 201 Created
 Idempotency-Replayed: true
 ```
 
-Reusing the key with a different payload returns:
+Same key with a different payload:
 
 ```http
 HTTP/1.1 409 Conflict
@@ -386,15 +465,15 @@ HTTP/1.1 302 Found
 Location: https://example.com/products?id=10
 ```
 
-An expired or disabled link returns `410 Gone`. An unknown code returns
+An expired or disabled link returns `410 Gone`. An unknown short code returns
 `404 Not Found`.
 
 ## Engineering workflow API
 
 ### Create a brownfield workflow
 
-The repository path is relative to `AGENT_REPOSITORY_ROOT`. To analyze the
-current project, use `"."`.
+The repository path is resolved relative to `AGENT_REPOSITORY_ROOT`. Use `"."`
+to analyze this project.
 
 ```powershell
 $workflow = Invoke-RestMethod `
@@ -408,27 +487,32 @@ $workflow = Invoke-RestMethod `
     }'
 ```
 
-Inspect its status:
+The request runs controlled Maven validation and may take longer than an
+ordinary API call.
+
+Check the result:
 
 ```powershell
 $workflow.status
 $workflow.revision
 ```
 
-Expected:
+Expected before approval:
 
 ```text
-COMPLETED
+AWAITING_APPROVAL
 1
 ```
 
-Inspect the generated dependency graph:
+Inspect the graph:
 
 ```powershell
 $workflow.tasks |
-    Select-Object name, type, status, dependencyIds, attempt |
+    Select-Object name, type, status, dependencyIds, attempt, failureMessage |
     Format-Table -AutoSize
 ```
+
+The release-readiness task should remain `PENDING` until approval.
 
 ### Create a greenfield workflow
 
@@ -444,7 +528,7 @@ $greenfield = Invoke-RestMethod `
     }'
 ```
 
-A greenfield plan does not contain `REPOSITORY_ANALYSIS`.
+A greenfield plan does not include `REPOSITORY_ANALYSIS`.
 
 ### Create an ambiguous workflow
 
@@ -466,13 +550,11 @@ Expected:
 AWAITING_CLARIFICATION
 ```
 
-Inspect the clarification questions:
+Inspect ambiguity questions:
 
 ```powershell
 $ambiguous.context.ambiguities
 ```
-
-No architecture or implementation task executes for an ambiguous request.
 
 ### Retrieve a workflow
 
@@ -480,20 +562,18 @@ No architecture or implementation task executes for an ambiguous request.
 GET /api/v1/engineering-workflows/{workflowId}
 ```
 
-Example:
-
 ```powershell
 Invoke-RestMethod `
     -Method Get `
     -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)"
 ```
 
-Workflow state currently remains available for the lifetime of the running
-application.
+Workflow state is currently available for the lifetime of the application
+process because workflow persistence remains in memory.
 
 ## Engineering artifacts
 
-### List workflow artifacts
+### List artifacts
 
 ```http
 GET /api/v1/engineering-workflows/{workflowId}/artifacts
@@ -509,21 +589,10 @@ $artifacts |
     Format-Table -AutoSize
 ```
 
-Expected artifact types:
-
-```text
-REPOSITORY_ANALYSIS
-ARCHITECTURE
-```
-
-Artifacts are stored under:
-
-```text
-agent-workspaces/{workflowId}/revision-{revision}/artifacts/
-````markdown
 ### Generated artifact bundle
 
 A successful brownfield workflow currently produces:
+
 ```text
 agent-workspaces/{workflowId}/revision-{revision}/artifacts/
 |-- repository-analysis.md
@@ -532,10 +601,25 @@ agent-workspaces/{workflowId}/revision-{revision}/artifacts/
 |-- test-plan.md
 |-- maven-test-attempt-1.log
 `-- validation-report-attempt-1.md
+```
 
-### Read the repository-analysis artifact
+| Artifact | Purpose |
+|---|---|
+| `repository-analysis.md` | Records project structure, build system, modules, tests, migrations, configuration, and impacted files |
+| `architecture.md` | Records design, compatibility concerns, risks, controls, and trade-offs |
+| `implementation-plan.md` | Records the requirement-specific implementation sequence and safety constraints |
+| `test-plan.md` | Records unit, integration, regression, and validation criteria |
+| `maven-test-attempt-1.log` | Preserves controlled Maven test output |
+| `validation-report-attempt-1.md` | Records command, exit code, timeout state, duration, log hash, and gate decision |
 
-Run these commands from the project root:
+Retries preserve prior evidence:
+
+```text
+maven-test-attempt-2.log
+validation-report-attempt-2.md
+```
+
+### Read an artifact
 
 ```powershell
 $repositoryArtifact = $artifacts |
@@ -551,31 +635,10 @@ $repositoryArtifactPath = Join-Path `
         $repositoryArtifact.relativePath
     )
 
-Test-Path -LiteralPath $repositoryArtifactPath
 Get-Content -LiteralPath $repositoryArtifactPath
 ```
 
-### Read the architecture artifact
-
-```powershell
-$architectureArtifact = $artifacts |
-    Where-Object {
-        $_.type -eq "ARCHITECTURE"
-    } |
-    Select-Object -First 1
-
-$architectureArtifactPath = Join-Path `
-    (Get-Location) `
-    (Join-Path `
-        "agent-workspaces" `
-        $architectureArtifact.relativePath
-    )
-
-Test-Path -LiteralPath $architectureArtifactPath
-Get-Content -LiteralPath $architectureArtifactPath
-```
-
-### Verify an artifact hash
+### Verify its hash
 
 ```powershell
 (Get-FileHash `
@@ -584,11 +647,113 @@ Get-Content -LiteralPath $architectureArtifactPath
 ).Hash.ToLower()
 ```
 
-The result should equal the artifact API's `sha256` value.
+The result should equal the API's `sha256` value.
+
+## Governance API
+
+### Inspect release policies
+
+```http
+GET /api/v1/engineering-workflows/{workflowId}/governance/policies
+```
+
+```powershell
+$policies = Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)/governance/policies"
+
+$policies |
+    Format-Table policy, passed, detail -AutoSize
+```
+
+A valid brownfield workflow should pass:
+
+```text
+POL-VALIDATION-PASSED
+POL-VALIDATION-EVIDENCE
+POL-ARCHITECTURE-EVIDENCE
+```
+
+### Approve release readiness
+
+```http
+POST /api/v1/engineering-workflows/{workflowId}/governance/approvals/release-readiness
+X-Actor: navya
+Content-Type: application/json
+```
+
+```powershell
+$approved = Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8080/api/v1/engineering-workflows/$($workflow.id)/governance/approvals/release-readiness" `
+    -Headers @{
+        "X-Actor" = "navya"
+    } `
+    -ContentType "application/json" `
+    -Body '{
+      "reason": "Validation and generated engineering artifacts were reviewed"
+    }'
+```
+
+Expected:
+
+```powershell
+$approved.status
+```
+
+```text
+COMPLETED
+```
+
+Approval records include:
+
+- Workflow ID
+- Workflow revision
+- Approver
+- Reason
+- Current artifact hashes
+- Approval timestamp
+
+A changed workflow revision does not satisfy an earlier approval gate.
+
+`X-Actor` is a prototype identity boundary. It demonstrates that identity comes
+from request context rather than an approver field in the JSON body. Production
+deployment requires integration with an authenticated principal.
+
+### Safely stop a workflow
+
+```http
+POST /api/v1/engineering-workflows/{workflowId}/governance/safe-stop
+X-Actor: navya
+Content-Type: application/json
+```
+
+```powershell
+$stopped = Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8080/api/v1/engineering-workflows/$($ambiguous.id)/governance/safe-stop" `
+    -Headers @{
+        "X-Actor" = "navya"
+    } `
+    -ContentType "application/json" `
+    -Body '{
+      "reason": "Required clarification is unavailable"
+    }'
+```
+
+Expected:
+
+```text
+SAFE_STOPPED
+```
+
+Safe stop prevents pending work from starting, cancels pending or blocked tasks,
+and preserves the actor and reason. It does not forcibly interrupt an already
+running external Maven process in this prototype.
 
 ## Repository safety
 
-The repository analyzer may only inspect paths under:
+Repository access is restricted to:
 
 ```text
 AGENT_REPOSITORY_ROOT
@@ -600,7 +765,7 @@ Default:
 .
 ```
 
-A path traversal request is rejected:
+A traversal request is rejected:
 
 ```powershell
 try {
@@ -629,7 +794,7 @@ Expected:
 
 API errors use RFC 9457 Problem Details.
 
-Supported error cases include:
+Current error categories include:
 
 - Invalid URL
 - Request validation failure
@@ -641,6 +806,9 @@ Supported error cases include:
 - Invalid workflow graph
 - Unknown workflow
 - Rejected repository access
+- Build validation failure
+- Governance operation rejection
+- Release policy violation
 
 ## Database inspection
 
@@ -655,35 +823,13 @@ docker exec `
     -c "\dt"
 ```
 
-Expected application tables:
+Expected:
 
 ```text
 platform_metadata
 short_urls
 idempotency_records
 flyway_schema_history
-```
-
-Inspect URL records:
-
-```powershell
-docker exec `
-    agentic-url-shortener-postgres `
-    psql `
-    -U postgres `
-    -d agentic_url_shortener `
-    -c "SELECT short_code, original_url, status, created_at, expires_at FROM short_urls;"
-```
-
-Inspect idempotency records:
-
-```powershell
-docker exec `
-    agentic-url-shortener-postgres `
-    psql `
-    -U postgres `
-    -d agentic_url_shortener `
-    -c "SELECT idempotency_key, status, resource_id, response_status FROM idempotency_records;"
 ```
 
 ## Configuration
@@ -702,69 +848,89 @@ docker exec `
 | Agent workspace | `AGENT_WORKSPACE_ROOT` | `./agent-workspaces` |
 | Approved repository root | `AGENT_REPOSITORY_ROOT` | `.` |
 | Maximum inspected files | `AGENT_REPOSITORY_MAX_FILES` | `2000` |
-| Maximum inspected file size | `AGENT_REPOSITORY_MAX_FILE_SIZE_BYTES` | `1048576` |
+| Maximum file size | `AGENT_REPOSITORY_MAX_FILE_SIZE_BYTES` | `1048576` |
 | Agent attempts | `AGENT_MAX_ATTEMPTS` | `2` |
 | Command timeout | `AGENT_COMMAND_TIMEOUT_SECONDS` | `120` |
+| Maximum command output | `AGENT_MAX_OUTPUT_CHARACTERS` | `100000` |
 | Model provider | `MODEL_PROVIDER` | `deterministic` |
 
 ## Design decisions
 
 ### Database-backed idempotency
 
-Idempotency state is stored in PostgreSQL so it survives application restarts and
-can support multiple application instances.
+Idempotency records live in PostgreSQL so duplicate handling survives application
+restarts and can work across multiple instances.
 
 ### Flyway-owned schemas
 
-Hibernate uses `ddl-auto=validate`. Flyway owns schema creation and evolution.
-Hibernate verifies that the mappings match the migrated schema.
+Flyway owns schema creation and evolution. Hibernate uses `ddl-auto=validate` to
+verify mappings without modifying the production schema.
 
 ### Dynamic workflow planning
 
-The generated plan depends on scenario, ambiguity, risk, and change type. The
-system does not apply one fixed task sequence to every requirement.
+Plans depend on scenario, ambiguity, risk, and request type. The system does not
+apply one fixed sequence to every requirement.
 
 ### Controlled autonomy
 
-Ambiguous requirements stop at `AWAITING_CLARIFICATION`. The system does not
-invent missing acceptance criteria and continue into implementation.
+Ambiguous requirements stop before architecture or implementation. Validated
+engineering work stops before release readiness until a human approves it.
 
 ### Controlled repository access
 
-All requested repository paths are resolved against an approved root. Normalized
-and real paths must remain inside that root. File counts and individual file
-sizes are bounded.
+Repository paths are resolved against an approved root. Normalized and real paths
+must remain within that root. Inspected file counts and sizes are bounded.
+
+### Controlled command execution
+
+The build tool runs only the repository's Maven Wrapper with fixed arguments:
+
+```text
+--batch-mode --no-transfer-progress test
+```
+
+API callers cannot submit commands or command-line arguments.
 
 ### Artifact lineage
 
-Artifacts are separated by workflow and workflow revision. Each reference
-records the producing task, hash, timestamp, path, and size. Existing artifacts
-cannot be silently overwritten.
+Artifacts are separated by workflow and revision. Each reference records its
+producing task, type, hash, size, path, and creation time. Retry evidence is
+preserved instead of overwritten.
+
+### Revision-bound approval
+
+Approval keys contain the release task and workflow revision. Incrementing the
+revision prevents old approval evidence from satisfying a new release gate.
 
 ### Lombok and JPA
 
-Lombok is used for DTOs and constructor injection. JPA entities do not use
-`@Data`, avoiding unsafe generated equality, hashing, and string behavior.
+Lombok is used for DTOs and constructor injection. JPA entities avoid `@Data`
+because generated equality, hashing, and string behavior are unsafe for mutable
+persistence entities.
 
 ## Testing
 
-The suite currently covers:
+The test suite covers:
 
-- Application context
+- Application startup
 - URL validation and domain behavior
 - Short-code generation
 - URL services
-- Idempotency fingerprints and state transitions
+- Idempotency fingerprints and transitions
 - Workflow graph validation
 - Cycle and missing-dependency rejection
-- Parallel execution and join synchronization
+- Parallel execution and synchronization
 - Bounded retry
-- Requirement normalization and ambiguity detection
-- Scenario-aware planning
+- Requirement analysis and ambiguity detection
+- Dynamic scenario planning
 - Documentation-only planning
-- Repository path enforcement
+- Repository boundary enforcement
 - Repository analysis
-- Artifact creation and hashing
+- Artifact generation and hashing
+- Implementation-plan generation
+- Controlled Maven tool rejection
+- Release policy enforcement
+- Revision-bound approval gates
 
 Run:
 
@@ -776,13 +942,14 @@ Run:
 
 - Workflow state is currently stored in memory.
 - The artifact catalog is in memory, although artifact files remain on disk.
+- Approval and safe-stop evidence is stored in workflow context.
+- `X-Actor` is not authenticated by a security provider.
 - Requirement analysis is deterministic rather than model-backed.
-- Repository and architecture stages generate real artifacts.
-- Implementation and test-planning stages generate real reviewable planning artifacts.
-- Brownfield validation executes the repository Maven test suite.
-- Source-code patch generation and isolated patch application are not implemented yet.
+- Implementation output is a reviewable plan, not an applied source patch.
+- Isolated patch application and rollback are not implemented yet.
+- Greenfield workflows do not materialize a source repository.
 - Clarification submission and dynamic replanning are not implemented yet.
-- Governance and authenticated approval are not implemented yet.
+- Safe stop does not forcibly terminate an already running Maven process.
 - Audit-grade event persistence and reliability metrics are not implemented yet.
 - Redirect analytics are not implemented yet.
 - The application is not yet packaged in Docker Compose.
@@ -790,14 +957,10 @@ Run:
 
 ## Planned next capabilities
 
-- Implementation and test artifacts
-- Controlled Maven execution
-- Executable validation gates
-- Bounded recovery evidence
-- Rollback and safe stop
-- Clarification-driven replanning
-- Policy-backed approvals
-- Audit events and reliability metrics
-- Greenfield, brownfield, and ambiguous scenario scripts
+- Clarification-driven workflow replanning
+- Approval invalidation evidence after replan
+- Persistent audit events
+- Reliability and latency metrics
+- Runnable greenfield, brownfield, and ambiguous scenarios
 - Docker application image
-- GitHub Actions CI
+- GitHub Actions CI and coverage gates

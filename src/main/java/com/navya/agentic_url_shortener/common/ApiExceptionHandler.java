@@ -1,5 +1,7 @@
 package com.navya.agentic_url_shortener.common;
 
+import com.navya.agentic_url_shortener.governance.GovernanceException;
+import com.navya.agentic_url_shortener.governance.PolicyViolationException;
 import com.navya.agentic_url_shortener.tool.repository.RepositoryAccessException;
 import com.navya.agentic_url_shortener.url.exception.InvalidUrlException;
 import com.navya.agentic_url_shortener.url.exception.ShortCodeGenerationException;
@@ -177,6 +179,34 @@ public class ApiExceptionHandler {
                 "Build validation failed",
                 exception.getMessage(),
                 "build-validation-failed",
+                request
+        );
+    }
+
+    @ExceptionHandler(GovernanceException.class)
+    public ProblemDetail handleGovernance(
+            GovernanceException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.CONFLICT,
+                "Governance operation rejected",
+                exception.getMessage(),
+                "governance-operation-rejected",
+                request
+        );
+    }
+
+    @ExceptionHandler(PolicyViolationException.class)
+    public ProblemDetail handlePolicyViolation(
+            PolicyViolationException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Release policy violation",
+                exception.getMessage(),
+                "release-policy-violation",
                 request
         );
     }

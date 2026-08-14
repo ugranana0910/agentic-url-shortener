@@ -67,7 +67,7 @@ public class WorkflowTask {
         this.maxAttempts = maxAttempts;
     }
 
-    public void start(Instant startedAt) {
+    public synchronized void start(Instant startedAt) {
         if (status != TaskStatus.PENDING) {
             throw new IllegalStateException(
                     "Only a pending task can be started"
@@ -80,7 +80,7 @@ public class WorkflowTask {
         this.failureMessage = null;
     }
 
-    public void succeed(Instant completedAt) {
+    public synchronized void succeed(Instant completedAt) {
         if (status != TaskStatus.RUNNING) {
             throw new IllegalStateException(
                     "Only a running task can succeed"
@@ -91,7 +91,7 @@ public class WorkflowTask {
         this.completedAt = Objects.requireNonNull(completedAt);
     }
 
-    public void fail(
+    public synchronized void fail(
             String message,
             Instant completedAt
     ) {
@@ -109,7 +109,7 @@ public class WorkflowTask {
         this.completedAt = Objects.requireNonNull(completedAt);
     }
 
-    public void prepareRetry() {
+    public synchronized void prepareRetry() {
         if (status != TaskStatus.FAILED) {
             throw new IllegalStateException(
                     "Only a failed task can be retried"
@@ -128,7 +128,7 @@ public class WorkflowTask {
         this.failureMessage = null;
     }
 
-    public void block(String reason) {
+    public synchronized void block(String reason) {
         if (status != TaskStatus.PENDING) {
             return;
         }
@@ -140,10 +140,10 @@ public class WorkflowTask {
         );
     }
 
-    public void cancel() {
+    public synchronized void cancel() {
         if (status == TaskStatus.PENDING ||
                 status == TaskStatus.BLOCKED) {
-            this.status = TaskStatus.CANCELLED;
+            status = TaskStatus.CANCELLED;
         }
     }
 

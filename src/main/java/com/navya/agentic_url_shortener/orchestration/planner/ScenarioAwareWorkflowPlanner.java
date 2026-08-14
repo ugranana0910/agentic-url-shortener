@@ -332,7 +332,7 @@ public class ScenarioAwareWorkflowPlanner
                 "Assess release readiness",
                 TaskType.RELEASE_READINESS,
                 releaseDependencies,
-                GateDefinition.dependenciesSucceeded(),
+                GateDefinition.humanApproval(),
                 GateDefinition.contextKeyPresent(
                         "releaseReadinessOutput"
                 )
