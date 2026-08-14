@@ -48,12 +48,17 @@ agentic:
   workspace:
     root: ${AGENT_WORKSPACE_ROOT:./agent-workspaces}
 
-  execution:
-    max-attempts: ${AGENT_MAX_ATTEMPTS:2}
-    command-timeout-seconds: ${AGENT_COMMAND_TIMEOUT_SECONDS:120}
+    repository:
+      allowed-root: ${AGENT_REPOSITORY_ROOT:.}
+      max-files: ${AGENT_REPOSITORY_MAX_FILES:2000}
+      max-file-size-bytes: ${AGENT_REPOSITORY_MAX_FILE_SIZE_BYTES:1048576}
 
-  model:
-    provider: ${MODEL_PROVIDER:deterministic}
+    execution:
+      max-attempts: ${AGENT_MAX_ATTEMPTS:2}
+      command-timeout-seconds: ${AGENT_COMMAND_TIMEOUT_SECONDS:120}
+
+    model:
+      provider: ${MODEL_PROVIDER:deterministic}
 
 idempotency:
   retention: ${IDEMPOTENCY_RETENTION:PT24H}

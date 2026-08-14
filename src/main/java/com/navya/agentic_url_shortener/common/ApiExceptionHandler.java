@@ -1,5 +1,6 @@
 package com.navya.agentic_url_shortener.common;
 
+import com.navya.agentic_url_shortener.tool.repository.RepositoryAccessException;
 import com.navya.agentic_url_shortener.url.exception.InvalidUrlException;
 import com.navya.agentic_url_shortener.url.exception.ShortCodeGenerationException;
 import com.navya.agentic_url_shortener.url.exception.ShortUrlNotFoundException;
@@ -147,6 +148,20 @@ public class ApiExceptionHandler {
                 "Invalid workflow graph",
                 exception.getMessage(),
                 "invalid-workflow-graph",
+                request
+        );
+    }
+
+    @ExceptionHandler(RepositoryAccessException.class)
+    public ProblemDetail handleRepositoryAccess(
+            RepositoryAccessException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.BAD_REQUEST,
+                "Repository access rejected",
+                exception.getMessage(),
+                "repository-access-rejected",
                 request
         );
     }

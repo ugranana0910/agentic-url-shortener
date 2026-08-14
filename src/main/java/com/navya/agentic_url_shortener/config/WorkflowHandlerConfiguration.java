@@ -9,21 +9,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class WorkflowHandlerConfiguration {
 
-    @Bean
-    public WorkflowTaskHandler repositoryAnalysisHandler() {
-        return new DeterministicStageHandler(
-                TaskType.REPOSITORY_ANALYSIS,
-                "repositoryAnalysisOutput"
-        );
-    }
-
-    @Bean
-    public WorkflowTaskHandler architectureHandler() {
-        return new DeterministicStageHandler(
-                TaskType.ARCHITECTURE_DESIGN,
-                "architectureOutput"
-        );
-    }
 
     @Bean
     public WorkflowTaskHandler implementationHandler() {

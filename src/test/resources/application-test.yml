@@ -18,6 +18,11 @@ agentic:
   workspace:
     root: ${java.io.tmpdir}/agentic-url-shortener-tests
 
+  repository:
+    allowed-root: ${java.io.tmpdir}
+    max-files: 2000
+    max-file-size-bytes: 1048576
+
   execution:
     max-attempts: 2
     command-timeout-seconds: 10
